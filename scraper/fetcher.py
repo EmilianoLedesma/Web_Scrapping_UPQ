@@ -180,6 +180,66 @@ class UPQFetcher:
 
         except requests.exceptions.RequestException as e:
             raise FetchError(f"Error al obtener inscripciones: {str(e)}")
+    
+    def fetch_home_data(self) -> str:
+        """
+        Obtiene el HTML de la página home/home con el perfil del estudiante.
+
+        Returns:
+            str: HTML de la página home con información del perfil.
+
+        Raises:
+            FetchError: Si hay un error al obtener los datos.
+        """
+        url = f"{settings.UPQ_BASE_URL}/alumnos.php/home/home"
+
+        print(f"📥 Obteniendo datos del perfil...")
+
+        try:
+            response = self.session.get(
+                url,
+                timeout=settings.REQUEST_TIMEOUT,
+                verify=settings.VERIFY_SSL
+            )
+
+            response.raise_for_status()
+
+            print(f"✅ Perfil obtenido ({len(response.text)} bytes)")
+            return response.text
+
+        except requests.exceptions.RequestException as e:
+            raise FetchError(f"Error al obtener datos del perfil: {str(e)}")
+    
+    def fetch_info_general(self) -> str:
+        """
+        Obtiene el HTML completo de información general del alumno.
+        Incluye: historial, estancias, talleres, servicio social, etc.
+
+        Returns:
+            str: HTML con toda la información general del alumno.
+
+        Raises:
+            FetchError: Si hay un error al obtener los datos.
+        """
+        # Usar el mid (menu id) conocido para información general
+        url = f"{settings.UPQ_BASE_URL}/alumnos.php/alumno_informacion_general?mid=16746"
+
+        print(f"📥 Obteniendo información general completa...")
+
+        try:
+            response = self.session.get(
+                url,
+                timeout=settings.REQUEST_TIMEOUT,
+                verify=settings.VERIFY_SSL
+            )
+
+            response.raise_for_status()
+
+            print(f"✅ Información general obtenida ({len(response.text)} bytes)")
+            return response.text
+
+        except requests.exceptions.RequestException as e:
+            raise FetchError(f"Error al obtener información general: {str(e)}")
 
 
 class UPQScraperSession:
@@ -243,3 +303,33 @@ class UPQScraperSession:
             raise FetchError("No autenticado - Ejecuta login() primero")
 
         return self.fetcher.fetch_student_info()
+    
+    def get_home_data(self) -> str:
+        """
+        Obtiene datos del perfil desde /home/home.
+
+        Returns:
+            str: HTML con datos del perfil del estudiante.
+
+        Raises:
+            FetchError: Si no se ha autenticado o hay error.
+        """
+        if not self.fetcher:
+            raise FetchError("No autenticado - Ejecuta login() primero")
+
+        return self.fetcher.fetch_home_data()
+    
+    def get_info_general(self) -> str:
+        """
+        Obtiene información general completa del alumno.
+
+        Returns:
+            str: HTML con toda la información general.
+
+        Raises:
+            FetchError: Si no se ha autenticado o hay error.
+        """
+        if not self.fetcher:
+            raise FetchError("No autenticado - Ejecuta login() primero")
+
+        return self.fetcher.fetch_info_general()

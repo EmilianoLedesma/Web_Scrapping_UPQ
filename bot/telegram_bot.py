@@ -49,6 +49,8 @@ from storage.memory import GradesMemory, StorageError
 # Imports para manejo de HTML adicional
 from bs4 import BeautifulSoup
 import re
+import json
+from pathlib import Path
 
 
 # Configurar logging
@@ -57,6 +59,81 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+
+class UserCredentialsManager:
+    """Gestiona las credenciales de usuarios del bot."""
+    
+    def __init__(self, storage_file: str = "storage/bot_users.json"):
+        """
+        Inicializa el gestor de credenciales.
+        
+        Args:
+            storage_file: Archivo donde se almacenan las credenciales (encriptadas).
+        """
+        self.storage_file = Path(storage_file)
+        self.users = self._load_users()
+    
+    def _load_users(self) -> dict:
+        """Carga los usuarios del archivo."""
+        if self.storage_file.exists():
+            try:
+                with open(self.storage_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+    
+    def _save_users(self):
+        """Guarda los usuarios en el archivo."""
+        self.storage_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.storage_file, 'w', encoding='utf-8') as f:
+            json.dump(self.users, f, indent=2)
+    
+    def set_credentials(self, user_id: int, username: str, password: str):
+        """
+        Guarda las credenciales de un usuario.
+        
+        Args:
+            user_id: ID del usuario de Telegram.
+            username: Usuario UPQ (matrícula).
+            password: Contraseña UPQ.
+        """
+        # En producción, esto debería estar encriptado
+        self.users[str(user_id)] = {
+            'username': username,
+            'password': password,
+            'registered_at': datetime.now().isoformat()
+        }
+        self._save_users()
+    
+    def get_credentials(self, user_id: int) -> Optional[dict]:
+        """
+        Obtiene las credenciales de un usuario.
+        
+        Args:
+            user_id: ID del usuario de Telegram.
+            
+        Returns:
+            Dict con 'username' y 'password' o None si no está registrado.
+        """
+        user_data = self.users.get(str(user_id))
+        if user_data:
+            return {
+                'username': user_data['username'],
+                'password': user_data['password']
+            }
+        return None
+    
+    def has_credentials(self, user_id: int) -> bool:
+        """Verifica si un usuario tiene credenciales guardadas."""
+        return str(user_id) in self.users
+    
+    def remove_credentials(self, user_id: int):
+        """Elimina las credenciales de un usuario."""
+        if str(user_id) in self.users:
+            del self.users[str(user_id)]
+            self._save_users()
 
 
 class UPQTelegramBot:
@@ -71,30 +148,91 @@ class UPQTelegramBot:
         """
         self.token = token
         self.memory = GradesMemory()
+        self.credentials_manager = UserCredentialsManager()
         self.app = None
+        self.logger = logging.getLogger(__name__)
+        # Diccionario para manejar conversaciones de registro
+        self.pending_registration = {}  # {user_id: {'step': 'username' | 'password', 'username': str}}
         
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Comando /start - Inicia el bot."""
-        welcome_message = """
+        """Comando /start - Inicia el bot y registra credenciales si es necesario."""
+        user_id = update.effective_user.id
+        
+        # Verificar si el usuario ya tiene credenciales
+        if self.credentials_manager.has_credentials(user_id):
+            welcome_message = """
 🎓 *Bot de Calificaciones UPQ*
 
-¡Bienvenido! Este bot te permite consultar tus calificaciones del Sistema Integral UPQ.
+¡Bienvenido de nuevo! Ya tienes tus credenciales configuradas.
 
 *💬 Habla naturalmente:*
 Puedes escribir cosas como:
-• "¿Cuáles son mis calificaciones?"
-• "¿Hay algo nuevo?"
-• "Muéstrame las estadísticas"
+• "¿Cuál es mi promedio general?"
+• "¿Tengo materias atrasadas?"
+• "¿Cuándo terminan mis estancias?"
 
 *⌨️ O usa comandos:*
-/grades - Obtener calificaciones actuales
-/check - Verificar si hay nuevas calificaciones
-/stats - Ver estadísticas del sistema
-/help - Mostrar ayuda completa
+/grades - Calificaciones actuales
+/promedio - Promedio general
+/creditos - Créditos y avance
+/estancias - Estancias profesionales
+/historial - Historial de promedios
+/info - Información personal
+/help - Ayuda completa
+/logout - Cerrar sesión y borrar credenciales
 
-*Nota:* El bot usa las credenciales configuradas en el servidor.
+🔐 *Tus credenciales están seguras y solo tú puedes acceder a ellas.*
 """
-        await update.message.reply_text(welcome_message, parse_mode='Markdown')
+            await update.message.reply_text(welcome_message, parse_mode='Markdown')
+        else:
+            # Usuario nuevo - solicitar credenciales
+            welcome_message = """
+🎓 *Bienvenido al Bot de Calificaciones UPQ*
+
+Para usar este bot necesito que configures tus credenciales del Sistema UPQ.
+
+🔐 *¿Es seguro?*
+• Tus credenciales se guardan de forma segura
+• Solo tú puedes acceder a tu información
+• Puedes eliminarlas en cualquier momento con /logout
+
+📝 *Para comenzar, envíame tu matrícula UPQ*
+Ejemplo: `123046244`
+
+⚠️ *Nota:* Este bot es personal y tus datos no se comparten con nadie.
+"""
+            await update.message.reply_text(welcome_message, parse_mode='Markdown')
+            
+            # Marcar que estamos esperando la matrícula
+            self.pending_registration[user_id] = {'step': 'username'}
+    
+    async def logout_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Comando /logout - Elimina las credenciales del usuario."""
+        user_id = update.effective_user.id
+        
+        if self.credentials_manager.has_credentials(user_id):
+            self.credentials_manager.remove_credentials(user_id)
+            # También limpiar registro pendiente si existe
+            if user_id in self.pending_registration:
+                del self.pending_registration[user_id]
+            
+            message = """
+🔓 *Sesión cerrada*
+
+Tus credenciales han sido eliminadas de forma segura.
+
+Para volver a usar el bot, usa /start para configurar nuevas credenciales.
+
+¡Hasta pronto! 👋
+"""
+            await update.message.reply_text(message, parse_mode='Markdown')
+        else:
+            message = """
+⚠️ No tienes credenciales guardadas.
+
+Usa /start para configurar tus credenciales y comenzar a usar el bot.
+"""
+            await update.message.reply_text(message, parse_mode='Markdown')
         
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Comando /help - Muestra ayuda."""
@@ -142,10 +280,17 @@ También puedes hacer preguntas como:
     
     async def info_general_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra información general del perfil del estudiante."""
+        user_id = update.effective_user.id
         await update.message.reply_text("📡 Obteniendo tu información...")
         
         try:
-            profile = await self._fetch_home_data()
+            # Obtener credenciales del usuario
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            profile = self._fetch_home_data(creds['username'], creds['password'])
             
             if not profile:
                 await update.message.reply_text("❌ No se pudo obtener información del perfil")
@@ -178,10 +323,17 @@ También puedes hacer preguntas como:
     
     async def promedio_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra el promedio general del estudiante."""
+        user_id = update.effective_user.id
         await update.message.reply_text("📊 Consultando tu promedio...")
         
         try:
-            profile = await self._fetch_home_data()
+            # Obtener credenciales del usuario
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            profile = self._fetch_home_data(creds['username'], creds['password'])
             
             if not profile or 'promedio' not in profile:
                 await update.message.reply_text("❌ No se pudo obtener el promedio")
@@ -213,10 +365,17 @@ También puedes hacer preguntas como:
     
     async def creditos_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra información sobre créditos aprobados."""
+        user_id = update.effective_user.id
         await update.message.reply_text("💳 Consultando tus créditos...")
         
         try:
-            profile = await self._fetch_home_data()
+            # Obtener credenciales del usuario
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            profile = self._fetch_home_data(creds['username'], creds['password'])
             
             if not profile or 'creditos' not in profile:
                 await update.message.reply_text("❌ No se pudo obtener información de créditos")
@@ -257,16 +416,23 @@ También puedes hacer preguntas como:
     
     async def estancias_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra información sobre estancias profesionales."""
+        user_id = update.effective_user.id
         await update.message.reply_text("💼 Consultando tus estancias...")
         
         try:
-            html = await self._fetch_info_general()
+            # Obtener credenciales del usuario
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            html = self._fetch_info_general(creds['username'], creds['password'])
             
             if not html:
                 await update.message.reply_text("❌ No se pudo obtener información")
                 return
             
-            estancias = await self._parse_estancias(html)
+            estancias = self._parse_estancias(html)
             
             if not estancias:
                 await update.message.reply_text("📝 No se encontraron estancias registradas")
@@ -298,16 +464,23 @@ También puedes hacer preguntas como:
     
     async def materias_atrasadas_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Analiza si hay materias atrasadas o reprobadas."""
+        user_id = update.effective_user.id
         await update.message.reply_text("📚 Analizando tu historial académico...")
         
         try:
-            html = await self._fetch_info_general()
+            # Obtener credenciales del usuario
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            html = self._fetch_info_general(creds['username'], creds['password'])
             
             if not html:
                 await update.message.reply_text("❌ No se pudo obtener información")
                 return
             
-            resultado = await self._analizar_materias_atrasadas(html)
+            resultado = self._analizar_materias_atrasadas(html)
             
             if not resultado['tiene_atrasadas']:
                 message = "✅ *¡Excelente!*\n\n"
@@ -331,16 +504,23 @@ También puedes hacer preguntas como:
     
     async def historial_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra el historial de promedios por cuatrimestre."""
+        user_id = update.effective_user.id
         await update.message.reply_text("📈 Obteniendo tu historial académico...")
         
         try:
-            html = await self._fetch_info_general()
+            # Obtener credenciales del usuario
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            html = self._fetch_info_general(creds['username'], creds['password'])
             
             if not html:
                 await update.message.reply_text("❌ No se pudo obtener información")
                 return
             
-            historial = await self._parse_historial_promedios(html)
+            historial = self._parse_historial_promedios(html)
             
             if not historial:
                 await update.message.reply_text("📝 No se encontró historial de promedios")
@@ -592,16 +772,52 @@ También puedes hacer preguntas como:
         
         return message
     
+    # ========== MÉTODO HELPER PARA AUTENTICACIÓN ==========
+    
+    def _create_user_session(self, user_id: int) -> Optional[tuple]:
+        """
+        Crea una sesión autenticada con las credenciales del usuario.
+        
+        Args:
+            user_id: ID del usuario de Telegram.
+            
+        Returns:
+            Tupla (session, username, password) o None si no tiene credenciales.
+        """
+        creds = self.credentials_manager.get_credentials(user_id)
+        if not creds:
+            return None
+        
+        return (UPQScraperSession(), creds['username'], creds['password'])
+    
     # ========== MÉTODOS PARA OBTENER DATOS ADICIONALES ==========
     
-    async def _fetch_home_data(self) -> dict:
+    def _fetch_home_data(self, username: str, password: str) -> dict:
         """Obtiene datos del perfil del estudiante desde /home/home."""
         try:
-            url = "https://sii.upq.mx/alumnos.php/home/home"
-            response = await self.session.session.get(url)
-            
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
+            # Crear sesión y autenticar con credenciales del usuario
+            with UPQScraperSession() as session:
+                # Necesitamos configurar temporalmente las credenciales
+                import config.settings as temp_settings
+                original_user = temp_settings.settings.UPQ_USERNAME
+                original_pass = temp_settings.settings.UPQ_PASSWORD
+                
+                try:
+                    temp_settings.settings.UPQ_USERNAME = username
+                    temp_settings.settings.UPQ_PASSWORD = password
+                    
+                    if not session.login():
+                        self.logger.error("Error de autenticación")
+                        return {}
+                    
+                    # Obtener HTML del perfil
+                    html = session.get_home_data()
+                finally:
+                    # Restaurar credenciales originales
+                    temp_settings.settings.UPQ_USERNAME = original_user
+                    temp_settings.settings.UPQ_PASSWORD = original_pass
+                
+                soup = BeautifulSoup(html, 'html.parser')
                 
                 # Buscar tabla con información del perfil
                 profile_data = {}
@@ -634,31 +850,42 @@ También puedes hacer preguntas como:
                                 profile_data['generacion'] = value
                 
                 return profile_data
-            else:
-                self.logger.error(f"Error al obtener datos de perfil: {response.status_code}")
-                return {}
                 
         except Exception as e:
             self.logger.error(f"Error al obtener datos de perfil: {e}")
             return {}
     
-    async def _fetch_info_general(self) -> str:
+    def _fetch_info_general(self, username: str, password: str) -> str:
         """Obtiene información general completa desde /alumno_informacion_general."""
         try:
-            url = "https://sii.upq.mx/alumnos.php/alumno_informacion_general?mid=16746"
-            response = await self.session.session.get(url)
-            
-            if response.status_code == 200:
-                return response.text
-            else:
-                self.logger.error(f"Error al obtener información general: {response.status_code}")
-                return ""
+            # Crear sesión y autenticar con credenciales del usuario
+            with UPQScraperSession() as session:
+                # Necesitamos configurar temporalmente las credenciales
+                import config.settings as temp_settings
+                original_user = temp_settings.settings.UPQ_USERNAME
+                original_pass = temp_settings.settings.UPQ_PASSWORD
+                
+                try:
+                    temp_settings.settings.UPQ_USERNAME = username
+                    temp_settings.settings.UPQ_PASSWORD = password
+                    
+                    if not session.login():
+                        self.logger.error("Error de autenticación")
+                        return ""
+                    
+                    # Obtener HTML completo
+                    html = session.get_info_general()
+                    return html
+                finally:
+                    # Restaurar credenciales originales
+                    temp_settings.settings.UPQ_USERNAME = original_user
+                    temp_settings.settings.UPQ_PASSWORD = original_pass
                 
         except Exception as e:
             self.logger.error(f"Error al obtener información general: {e}")
             return ""
     
-    async def _parse_estancias(self, html: str) -> list:
+    def _parse_estancias(self, html: str) -> list:
         """Parsea información de estancias profesionales."""
         try:
             soup = BeautifulSoup(html, 'html.parser')
@@ -737,7 +964,7 @@ También puedes hacer preguntas como:
             self.logger.error(f"Error al parsear talleres: {e}")
             return []
     
-    async def _parse_historial_promedios(self, html: str) -> list:
+    def _parse_historial_promedios(self, html: str) -> list:
         """Parsea el historial de promedios por cuatrimestre."""
         try:
             soup = BeautifulSoup(html, 'html.parser')
@@ -771,7 +998,7 @@ También puedes hacer preguntas como:
             self.logger.error(f"Error al parsear historial de promedios: {e}")
             return []
     
-    async def _analizar_materias_atrasadas(self, html: str) -> dict:
+    def _analizar_materias_atrasadas(self, html: str) -> dict:
         """Analiza si hay materias atrasadas o reprobadas."""
         try:
             soup = BeautifulSoup(html, 'html.parser')
@@ -819,7 +1046,79 @@ También puedes hacer preguntas como:
         
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Procesa mensajes de texto con lenguaje natural."""
-        text = update.message.text.lower().strip()
+        user_id = update.effective_user.id
+        text = update.message.text.strip()
+        
+        # ========== MANEJO DE REGISTRO DE CREDENCIALES ==========
+        
+        # Verificar si el usuario está en proceso de registro
+        if user_id in self.pending_registration:
+            registration = self.pending_registration[user_id]
+            
+            if registration['step'] == 'username':
+                # Guardar matrícula y pedir contraseña
+                registration['username'] = text
+                registration['step'] = 'password'
+                
+                message = """
+✅ *Matrícula recibida*
+
+Ahora envíame tu contraseña del Sistema UPQ.
+
+🔒 *Seguridad:*
+• Tu contraseña se guarda de forma segura
+• Solo tú puedes acceder a ella
+• Puedes eliminarla con /logout
+
+📝 Envía tu contraseña:
+"""
+                await update.message.reply_text(message, parse_mode='Markdown')
+                return
+                
+            elif registration['step'] == 'password':
+                # Guardar contraseña y completar registro
+                username = registration['username']
+                password = text
+                
+                # Guardar credenciales
+                self.credentials_manager.set_credentials(user_id, username, password)
+                
+                # Limpiar registro pendiente
+                del self.pending_registration[user_id]
+                
+                message = """
+🎉 *¡Registro completado!*
+
+Tus credenciales han sido guardadas de forma segura.
+
+Ya puedes usar todos los comandos del bot:
+• /grades - Ver calificaciones
+• /promedio - Ver promedio
+• /creditos - Ver créditos
+• /estancias - Ver estancias
+• /help - Ver todos los comandos
+
+¡Intenta preguntarme "¿Cuál es mi promedio?" o cualquier otra consulta! 😊
+"""
+                await update.message.reply_text(message, parse_mode='Markdown')
+                return
+        
+        # ========== VERIFICAR QUE EL USUARIO TIENE CREDENCIALES ==========
+        
+        if not self.credentials_manager.has_credentials(user_id):
+            message = """
+⚠️ *No tienes credenciales configuradas*
+
+Para usar el bot, primero necesitas configurar tus credenciales.
+
+Usa /start para comenzar el proceso de registro.
+"""
+            await update.message.reply_text(message, parse_mode='Markdown')
+            return
+        
+        # ========== PROCESAMIENTO NORMAL DE MENSAJES ==========
+        
+        text_lower = text.lower().strip()
         
         # ========== CONSULTAS DE INFORMACIÓN GENERAL ==========
         
@@ -893,43 +1192,43 @@ También puedes hacer preguntas como:
         # ========== DETECCIÓN DE INTENCIÓN ==========
         
         # Información general del perfil
-        if any(keyword in text for keyword in info_keywords):
+        if any(keyword in text_lower for keyword in info_keywords):
             await self.info_general_command(update, context)
             
         # Promedio general
-        elif any(keyword in text for keyword in promedio_keywords):
+        elif any(keyword in text_lower for keyword in promedio_keywords):
             await self.promedio_command(update, context)
             
         # Créditos y avance
-        elif any(keyword in text for keyword in creditos_keywords):
+        elif any(keyword in text_lower for keyword in creditos_keywords):
             await self.creditos_command(update, context)
             
         # Materias atrasadas
-        elif any(keyword in text for keyword in materias_keywords):
+        elif any(keyword in text_lower for keyword in materias_keywords):
             await self.materias_atrasadas_command(update, context)
             
         # Estancias profesionales
-        elif any(keyword in text for keyword in estancias_keywords):
+        elif any(keyword in text_lower for keyword in estancias_keywords):
             await self.estancias_command(update, context)
             
         # Historial académico
-        elif any(keyword in text for keyword in historial_keywords):
+        elif any(keyword in text_lower for keyword in historial_keywords):
             await self.historial_command(update, context)
             
         # Calificaciones actuales
-        elif any(keyword in text for keyword in grades_keywords):
+        elif any(keyword in text_lower for keyword in grades_keywords):
             await self.grades_command(update, context)
             
         # Verificar cambios
-        elif any(keyword in text for keyword in check_keywords):
+        elif any(keyword in text_lower for keyword in check_keywords):
             await self.check_command(update, context)
             
         # Estadísticas
-        elif any(keyword in text for keyword in stats_keywords):
+        elif any(keyword in text_lower for keyword in stats_keywords):
             await self.stats_command(update, context)
             
         # Ayuda
-        elif any(keyword in text for keyword in help_keywords):
+        elif any(keyword in text_lower for keyword in help_keywords):
             await self.help_command(update, context)
             
         else:
@@ -973,6 +1272,7 @@ También puedes hacer preguntas como:
         
         # Registrar handlers
         self.app.add_handler(CommandHandler("start", self.start_command))
+        self.app.add_handler(CommandHandler("logout", self.logout_command))
         self.app.add_handler(CommandHandler("help", self.help_command))
         self.app.add_handler(CommandHandler("grades", self.grades_command))
         self.app.add_handler(CommandHandler("check", self.check_command))

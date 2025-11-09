@@ -7,6 +7,11 @@ Uso:
     python main.py --check-new       # Detectar nuevas calificaciones
     python main.py --export FILE     # Exportar datos a JSON
     python main.py --stats           # Mostrar estadísticas
+    python main.py --info            # Información del perfil
+    python main.py --promedio        # Promedio general
+    python main.py --creditos        # Créditos y avance
+    python main.py --estancias       # Estancias profesionales
+    python main.py --historial       # Historial de promedios
 """
 
 import argparse
@@ -33,6 +38,8 @@ from scraper.fetcher import UPQScraperSession, FetchError
 from scraper.parser import UPQGradesParser, ParserError
 from scraper.auth import AuthenticationError
 from storage.memory import GradesMemory, StorageError
+from bs4 import BeautifulSoup
+import re
 
 
 def print_banner():
@@ -262,6 +269,255 @@ def pretty_print_grades(grades_data: dict) -> None:
     print('\n' + '═' * 90 + '\n')
 
 
+def get_profile_info(session: UPQScraperSession) -> Optional[dict]:
+    """Obtiene información del perfil del estudiante."""
+    try:
+        print("\n📡 Obteniendo información del perfil...")
+        html = session.get_home_data()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        profile_data = {}
+        tables = soup.find_all('table')
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            for row in rows:
+                cols = row.find_all(['th', 'td'])
+                if len(cols) >= 2:
+                    key = cols[0].get_text(strip=True).lower()
+                    value = cols[1].get_text(strip=True)
+                    
+                    if 'nombre' in key:
+                        profile_data['nombre'] = value
+                    elif 'matrícula' in key or 'matricula' in key:
+                        profile_data['matricula'] = value
+                    elif 'promedio' in key:
+                        profile_data['promedio'] = value
+                    elif 'créditos' in key or 'creditos' in key:
+                        profile_data['creditos'] = value
+                    elif 'cuatrimestre' in key:
+                        profile_data['cuatrimestre'] = value
+                    elif 'carrera' in key:
+                        profile_data['carrera'] = value
+                    elif 'grupo' in key:
+                        profile_data['grupo'] = value
+                    elif 'generación' in key or 'generacion' in key:
+                        profile_data['generacion'] = value
+        
+        return profile_data
+    except Exception as e:
+        print(f"\n❌ Error al obtener perfil: {e}")
+        return None
+
+
+def show_profile_info(profile: dict) -> None:
+    """Muestra la información del perfil."""
+    print("\n" + "╭" + "─" * 78 + "╮")
+    print("│" + " " * 26 + "👤 INFORMACIÓN DEL PERFIL" + " " * 27 + "│")
+    print("╰" + "─" * 78 + "╯\n")
+    
+    if 'nombre' in profile:
+        print(f"  👤 Nombre: {profile['nombre']}")
+    if 'matricula' in profile:
+        print(f"  🆔 Matrícula: {profile['matricula']}")
+    if 'carrera' in profile:
+        print(f"  🎓 Carrera: {profile['carrera']}")
+    if 'cuatrimestre' in profile:
+        print(f"  📚 Cuatrimestre: {profile['cuatrimestre']}")
+    if 'grupo' in profile:
+        print(f"  👥 Grupo: {profile['grupo']}")
+    if 'generacion' in profile:
+        print(f"  📅 Generación: {profile['generacion']}")
+    if 'promedio' in profile:
+        print(f"  📊 Promedio: {profile['promedio']}")
+    if 'creditos' in profile:
+        print(f"  💳 Créditos: {profile['creditos']}")
+    
+    print("\n" + "╰" + "─" * 78 + "╯")
+
+
+def show_promedio(session: UPQScraperSession) -> None:
+    """Muestra el promedio general."""
+    profile = get_profile_info(session)
+    
+    if not profile or 'promedio' not in profile:
+        print("\n❌ No se pudo obtener el promedio")
+        return
+    
+    promedio = profile['promedio']
+    print("\n" + "╭" + "─" * 78 + "╮")
+    print("│" + " " * 27 + "📊 PROMEDIO GENERAL" + " " * 30 + "│")
+    print("╰" + "─" * 78 + "╯\n")
+    print(f"  Tu promedio actual es: {promedio}\n")
+    
+    try:
+        prom_num = float(promedio)
+        if prom_num >= 9.0:
+            print("  🌟 ¡Excelente desempeño!")
+        elif prom_num >= 8.0:
+            print("  👍 ¡Muy bien!")
+        elif prom_num >= 7.0:
+            print("  📚 Buen trabajo")
+        else:
+            print("  💪 ¡Sigue adelante!")
+    except:
+        pass
+    
+    print("\n" + "╰" + "─" * 78 + "╯")
+
+
+def show_creditos(session: UPQScraperSession) -> None:
+    """Muestra información sobre créditos."""
+    profile = get_profile_info(session)
+    
+    if not profile or 'creditos' not in profile:
+        print("\n❌ No se pudo obtener información de créditos")
+        return
+    
+    creditos_text = profile['creditos']
+    print("\n" + "╭" + "─" + "─" * 78 + "╮")
+    print("│" + " " * 27 + "💳 CRÉDITOS APROBADOS" + " " * 28 + "│")
+    print("╰" + "─" * 78 + "╯\n")
+    print(f"  {creditos_text}\n")
+    
+    if '/' in creditos_text:
+        try:
+            parts = creditos_text.split('/')
+            aprobados = int(parts[0].strip())
+            totales = int(parts[1].strip().split()[0])
+            porcentaje = (aprobados / totales) * 100
+            faltantes = totales - aprobados
+            
+            print(f"  📈 Avance: {porcentaje:.1f}%")
+            print(f"  📝 Te faltan: {faltantes} créditos\n")
+            
+            if porcentaje >= 90:
+                print("  🎓 ¡Casi listo para graduarte!")
+            elif porcentaje >= 75:
+                print("  🚀 ¡Ya estás en la recta final!")
+            elif porcentaje >= 50:
+                print("  💪 ¡Vas por buen camino!")
+            else:
+                print("  📚 ¡Sigue adelante!")
+        except:
+            pass
+    
+    print("\n" + "╰" + "─" * 78 + "╯")
+
+
+def show_estancias(session: UPQScraperSession) -> None:
+    """Muestra información de estancias profesionales."""
+    try:
+        print("\n📡 Obteniendo información de estancias...")
+        html = session.get_info_general()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        estancias = []
+        
+        fieldsets = soup.find_all('fieldset')
+        for fieldset in fieldsets:
+            legend = fieldset.find('legend')
+            if legend and 'estancia' in legend.get_text(strip=True).lower():
+                tables = fieldset.find_all('table')
+                for table in tables:
+                    estancia_data = {}
+                    rows = table.find_all('tr')
+                    for row in rows:
+                        cols = row.find_all(['th', 'td'])
+                        if len(cols) >= 2:
+                            key = cols[0].get_text(strip=True).lower()
+                            value = cols[1].get_text(strip=True)
+                            
+                            if 'empresa' in key or 'organización' in key or 'organizacion' in key:
+                                estancia_data['empresa'] = value
+                            elif 'proyecto' in key:
+                                estancia_data['proyecto'] = value
+                            elif 'fecha inicio' in key or 'inicia' in key:
+                                estancia_data['fecha_inicio'] = value
+                            elif 'fecha fin' in key or 'termina' in key or 'concluye' in key:
+                                estancia_data['fecha_fin'] = value
+                            elif 'asesor' in key:
+                                estancia_data['asesor'] = value
+                    
+                    if estancia_data:
+                        estancias.append(estancia_data)
+        
+        if not estancias:
+            print("\n📝 No se encontraron estancias registradas")
+            return
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 24 + "💼 ESTANCIAS PROFESIONALES" + " " * 27 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        for i, estancia in enumerate(estancias, 1):
+            print(f"  Estancia {i}:")
+            if 'empresa' in estancia:
+                print(f"    🏢 Empresa: {estancia['empresa']}")
+            if 'proyecto' in estancia:
+                print(f"    📋 Proyecto: {estancia['proyecto']}")
+            if 'fecha_inicio' in estancia:
+                print(f"    📅 Inicio: {estancia['fecha_inicio']}")
+            if 'fecha_fin' in estancia:
+                print(f"    🏁 Fin: {estancia['fecha_fin']}")
+            if 'asesor' in estancia:
+                print(f"    👨‍🏫 Asesor: {estancia['asesor']}")
+            print()
+        
+        print("╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener estancias: {e}")
+
+
+def show_historial_promedios(session: UPQScraperSession) -> None:
+    """Muestra el historial de promedios por cuatrimestre."""
+    try:
+        print("\n📡 Obteniendo historial de promedios...")
+        html = session.get_info_general()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        historial = []
+        
+        fieldsets = soup.find_all('fieldset')
+        for fieldset in fieldsets:
+            legend = fieldset.find('legend')
+            if legend:
+                legend_text = legend.get_text(strip=True).lower()
+                if 'historial' in legend_text or 'promedio' in legend_text or 'estadística' in legend_text:
+                    tables = fieldset.find_all('table')
+                    for table in tables:
+                        rows = table.find_all('tr')
+                        for row in rows:
+                            cols = row.find_all(['th', 'td'])
+                            if len(cols) >= 2:
+                                cuatrimestre = cols[0].get_text(strip=True)
+                                promedio = cols[1].get_text(strip=True)
+                                
+                                if re.search(r'\d+', cuatrimestre):
+                                    historial.append({
+                                        'cuatrimestre': cuatrimestre,
+                                        'promedio': promedio
+                                    })
+        
+        if not historial:
+            print("\n📝 No se encontró historial de promedios")
+            return
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 25 + "📈 HISTORIAL DE PROMEDIOS" + " " * 28 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        for item in historial:
+            print(f"  📚 {item['cuatrimestre']}: {item['promedio']}")
+        
+        print("\n  💡 Tip: Analiza tu evolución para identificar patrones")
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener historial: {e}")
+
+
 def main():
     """Función principal del programa."""
     # Parsear argumentos de línea de comandos
@@ -315,6 +571,36 @@ Ejemplos de uso:
         help='Limpiar todo el historial (usar con precaución)'
     )
 
+    parser.add_argument(
+        '--info',
+        action='store_true',
+        help='Mostrar información del perfil del estudiante'
+    )
+
+    parser.add_argument(
+        '--promedio',
+        action='store_true',
+        help='Mostrar promedio general'
+    )
+
+    parser.add_argument(
+        '--creditos',
+        action='store_true',
+        help='Mostrar créditos aprobados y avance'
+    )
+
+    parser.add_argument(
+        '--estancias',
+        action='store_true',
+        help='Mostrar información de estancias profesionales'
+    )
+
+    parser.add_argument(
+        '--historial',
+        action='store_true',
+        help='Mostrar historial de promedios por cuatrimestre'
+    )
+
     args = parser.parse_args()
 
     # Si no se proporciona ningún argumento, mostrar ayuda
@@ -352,7 +638,7 @@ Ejemplos de uso:
         return
 
     # Comandos que requieren conexión al sistema UPQ
-    if args.get_grades or args.check_new or args.json:
+    if args.get_grades or args.check_new or args.json or args.info or args.promedio or args.creditos or args.estancias or args.historial:
         # Validar configuración
         if not settings.validate():
             print("\n❌ Configura tus credenciales en el archivo .env")
@@ -372,7 +658,31 @@ Ejemplos de uso:
                     sys.exit(1)
 
                 # Ejecutar comando correspondiente
-                if args.get_grades or args.json:
+                if args.info:
+                    profile = get_profile_info(session)
+                    if profile:
+                        show_profile_info(profile)
+                        print("\n✅ Operación completada exitosamente")
+                    else:
+                        sys.exit(1)
+                
+                elif args.promedio:
+                    show_promedio(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.creditos:
+                    show_creditos(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.estancias:
+                    show_estancias(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.historial:
+                    show_historial_promedios(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.get_grades or args.json:
                     grades = get_grades(session, memory)
 
                     if grades:
