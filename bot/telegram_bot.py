@@ -457,39 +457,54 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
         await update.message.reply_text("💼 Consultando tus estancias...")
         
         try:
-            # Obtener credenciales del usuario
+            # Obtener credenciales
             creds = self.credentials_manager.get_credentials(user_id)
             if not creds:
-                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                await update.message.reply_text(
+                    "❌ No estás autenticado. Usa /login para iniciar sesión."
+                )
                 return
             
-            html = self._fetch_info_general(creds['username'], creds['password'])
+            # Importar parser
+            from scraper.parser import parse_estancias
+            from scraper.fetcher import UPQScraperSession
+            from scraper.auth import UPQAuthenticator
             
-            if not html:
-                await update.message.reply_text("❌ No se pudo obtener información")
-                return
+            # Autenticar y obtener info general
+            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
+            authenticator.login()
             
-            estancias = self._parse_estancias(html)
+            fetcher = UPQScraperSession(authenticator)
+            info_html = fetcher.get_info_general()
+            
+            # Parsear estancias
+            estancias = parse_estancias(info_html)
             
             if not estancias:
                 await update.message.reply_text("📝 No se encontraron estancias registradas")
                 return
             
-            message = "💼 *Estancias Profesionales*\n\n"
+            message = "💼 *ESTANCIAS PROFESIONALES*\n\n"
             
-            for i, estancia in enumerate(estancias, 1):
-                message += f"*Estancia {i}*\n"
+            for estancia in estancias:
+                curso = estancia.get('curso', 'N/A')
+                empresa = estancia.get('empresa', 'N/A')
+                periodo = estancia.get('periodo', 'N/A')
+                estatus = estancia.get('estatus', 'N/A')
+                descripcion = estancia.get('descripcion', '')
                 
-                if 'empresa' in estancia:
-                    message += f"🏢 Empresa: {estancia['empresa']}\n"
-                if 'proyecto' in estancia:
-                    message += f"📋 Proyecto: {estancia['proyecto']}\n"
-                if 'fecha_inicio' in estancia:
-                    message += f"📅 Inicio: {estancia['fecha_inicio']}\n"
-                if 'fecha_fin' in estancia:
-                    message += f"🏁 Fin: {estancia['fecha_fin']}\n"
-                if 'asesor' in estancia:
-                    message += f"👨‍🏫 Asesor: {estancia['asesor']}\n"
+                # Emoji según estatus
+                emoji_estatus = "✅" if estatus == "CONCLUIDO" else "🔄" if estatus == "AUTORIZADO" else "📋"
+                
+                message += f"{emoji_estatus} *{curso}*\n"
+                message += f"🏢 {empresa}\n"
+                message += f"📅 {periodo}\n"
+                message += f"📊 Estatus: {estatus}\n"
+                
+                # Descripción corta (primeras 150 caracteres)
+                if descripcion:
+                    desc_corta = descripcion[:150] + "..." if len(descripcion) > 150 else descripcion
+                    message += f"� {desc_corta}\n"
                 
                 message += "\n"
             
@@ -632,15 +647,15 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
             
             # Importar parser
             from scraper.parser import parse_kardex
-            from scraper.fetcher import GradesFetcher
+            from scraper.fetcher import UPQScraperSession
             from scraper.auth import UPQAuthenticator
             
             # Autenticar y obtener kardex
             authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
             authenticator.login()
             
-            fetcher = GradesFetcher(authenticator)
-            kardex_html = fetcher.fetch_kardex()
+            fetcher = UPQScraperSession(authenticator)
+            kardex_html = fetcher.get_kardex()
             
             # Parsear kardex
             materias = parse_kardex(kardex_html)
@@ -679,7 +694,7 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
             await update.message.reply_text(mensaje, parse_mode='Markdown')
             
         except Exception as e:
-            logger.error(f"Error en kardex_command: {e}")
+            self.logger.error(f"Error en kardex_command: {e}")
             await update.message.reply_text(f"❌ Error al obtener kardex: {str(e)}")
     
     async def boleta_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -722,24 +737,72 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
     
     async def servicio_social_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """
-        Informa que el servicio social no está disponible como endpoint separado.
-        Redirige al comando de historial completo.
+        Muestra información del servicio social del estudiante.
         """
         user_id = update.effective_user.id
+        await update.message.reply_text("🎓 Consultando tu servicio social...")
         
-        message = (
-            "ℹ️ *Servicio Social*\n\n"
-            "El endpoint de servicio social no está disponible como sección separada.\n\n"
-            "📊 Para ver información de tu **servicio social**, usa:\n"
-            "👉 /historial\n\n"
-            "Este comando te mostrará tu información completa, incluyendo:\n"
-            "• Estado del servicio social\n"
-            "• Horas completadas\n"
-            "• Dependencia asignada\n"
-            "• Y toda tu trayectoria académica"
-        )
-        
-        await update.message.reply_text(message, parse_mode='Markdown')
+        try:
+            # Obtener credenciales
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text(
+                    "❌ No estás autenticado. Usa /login para iniciar sesión."
+                )
+                return
+            
+            # Importar parser
+            from scraper.parser import parse_servicio_social
+            from scraper.fetcher import UPQScraperSession
+            from scraper.auth import UPQAuthenticator
+            
+            # Autenticar y obtener info general
+            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
+            authenticator.login()
+            
+            fetcher = UPQScraperSession(authenticator)
+            info_html = fetcher.get_info_general()
+            
+            # Parsear servicio social
+            servicio = parse_servicio_social(info_html)
+            
+            if not servicio:
+                await update.message.reply_text("❌ No se encontró información del servicio social")
+                return
+            
+            # Construir mensaje
+            message = "🎓 *SERVICIO SOCIAL*\n\n"
+            
+            # Estado del servicio
+            activo = servicio.get('activo', False)
+            if activo:
+                message += "✅ *Servicio social ACTIVO*\n\n"
+            else:
+                message += "⏸️ *Servicio social NO ACTIVO*\n\n"
+            
+            # Requisitos
+            mat_req = servicio.get('materias_requeridas', 'N/A')
+            mat_falt = servicio.get('materias_faltantes', 'N/A')
+            
+            message += f"📚 Materias requeridas: *{mat_req}*\n"
+            message += f"📋 Materias faltantes: *{mat_falt}*\n\n"
+            
+            # Estatus
+            estatus = servicio.get('estatus', 'N/A')
+            cumple = servicio.get('cumple_requisitos', False)
+            
+            if cumple:
+                message += f"✅ *{estatus}*\n"
+                message += "¡Puedes comenzar tu servicio social! 🎉"
+            else:
+                message += f"⚠️ *{estatus}*\n"
+                message += f"Te faltan {mat_falt} materias para cumplir requisitos."
+            
+            await update.message.reply_text(message, parse_mode='Markdown')
+            
+        except Exception as e:
+            self.logger.error(f"Error en servicio_social_command: {e}")
+            await update.message.reply_text("❌ Error al obtener información de servicio social")
     
     async def perfil_personal_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra el perfil personal del usuario"""
@@ -757,15 +820,15 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
             
             # Importar parser
             from scraper.parser import parse_student_profile
-            from scraper.fetcher import GradesFetcher
+            from scraper.fetcher import UPQScraperSession
             from scraper.auth import UPQAuthenticator
             
             # Autenticar y obtener perfil
             authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
             authenticator.login()
             
-            fetcher = GradesFetcher(authenticator)
-            perfil_html = fetcher.fetch_perfil()
+            fetcher = UPQScraperSession(authenticator)
+            perfil_html = fetcher.get_perfil()
             
             # Parsear perfil
             perfil = parse_student_profile(perfil_html)
@@ -824,7 +887,7 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
             await update.message.reply_text(mensaje, parse_mode='Markdown')
             
         except Exception as e:
-            logger.error(f"Error en perfil_personal_command: {e}")
+            self.logger.error(f"Error en perfil_personal_command: {e}")
             await update.message.reply_text(f"❌ Error al obtener perfil: {str(e)}")
     
     async def pagos_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1031,22 +1094,22 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
                     await update.message.reply_text("⚠️ No se encontraron calificaciones")
                     
         except AuthenticationError as e:
-            logger.error(f"Authentication error: {e}")
+            self.logger.error(f"Authentication error: {e}")
             await update.message.reply_text(f"❌ Error de autenticación: {e}")
             
         except FetchError as e:
-            logger.error(f"Fetch error: {e}")
+            self.logger.error(f"Fetch error: {e}")
             await update.message.reply_text(f"❌ Error al obtener datos: {e}")
             
         except ParserError as e:
-            logger.error(f"Parser error: {e}")
+            self.logger.error(f"Parser error: {e}")
             await update.message.reply_text(
                 f"❌ Error al parsear HTML: {e}\n"
                 "El formato del sistema puede haber cambiado."
             )
             
         except Exception as e:
-            logger.error(f"Unexpected error: {e}", exc_info=True)
+            self.logger.error(f"Unexpected error: {e}", exc_info=True)
             await update.message.reply_text(f"❌ Error inesperado: {e}")
             
     async def check_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1116,22 +1179,22 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
                     await update.message.reply_text(message, parse_mode='Markdown')
                     
         except AuthenticationError as e:
-            logger.error(f"Authentication error: {e}")
+            self.logger.error(f"Authentication error: {e}")
             await update.message.reply_text(f"❌ Error de autenticación: {e}")
             
         except FetchError as e:
-            logger.error(f"Fetch error: {e}")
+            self.logger.error(f"Fetch error: {e}")
             await update.message.reply_text(f"❌ Error al obtener datos: {e}")
             
         except ParserError as e:
-            logger.error(f"Parser error: {e}")
+            self.logger.error(f"Parser error: {e}")
             await update.message.reply_text(
                 f"❌ Error al parsear HTML: {e}\n"
                 "El formato del sistema puede haber cambiado."
             )
             
         except Exception as e:
-            logger.error(f"Unexpected error: {e}", exc_info=True)
+            self.logger.error(f"Unexpected error: {e}", exc_info=True)
             await update.message.reply_text(f"❌ Error inesperado: {e}")
             
     async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1690,7 +1753,7 @@ Usa /start para comenzar el proceso de registro.
     
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Maneja errores globales."""
-        logger.error(f"Update {update} caused error {context.error}")
+        self.logger.error(f"Update {update} caused error {context.error}")
         
         if update and update.message:
             await update.message.reply_text(

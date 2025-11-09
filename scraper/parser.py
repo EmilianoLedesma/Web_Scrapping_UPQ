@@ -1121,3 +1121,142 @@ def parse_seguimiento_cuatrimestral(html: str) -> List[Dict]:
     print(f"✅ Seguimiento parseado: {len(seguimiento)} cuatrimestres encontrados")
     return seguimiento
 
+
+def parse_estancias(html: str) -> List[Dict]:
+    """
+    Parsea las estancias profesionales y estadía del estudiante.
+    
+    Extrae información completa de estancias I, II y estadía profesional
+    desde la sección "Estancias y Estadía" del endpoint de información general.
+    
+    Args:
+        html: HTML de la página de información general (alumno_informacion_general)
+        
+    Returns:
+        Lista de diccionarios con datos de cada estancia/estadía
+        
+    Ejemplo de retorno:
+        [
+            {
+                'numero': '1',
+                'curso': 'Estancia I',
+                'empresa': 'UNIVERSIDAD POLITECNICA DE QUERETARO',
+                'descripcion': 'Este curso ofrece conocimientos...',
+                'periodo': 'ENERO - ABRIL 2025',
+                'estatus': 'CONCLUIDO'
+            },
+            {
+                'numero': '2',
+                'curso': 'Estancia II',
+                'empresa': 'SECRETARIA DE EDUCACION DEL ESTADO DE QUERETARO',
+                'descripcion': 'Obtencion de estadistica educativa...',
+                'periodo': 'SEPTIEMBRE-DICIEMBRE 2025',
+                'estatus': 'AUTORIZADO'
+            }
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la sección de estancias
+    estancias_section = None
+    for fieldset in soup.find_all('fieldset'):
+        legend = fieldset.find('legend')
+        if legend and 'Estancias y Estad' in legend.text:
+            estancias_section = fieldset
+            break
+    
+    if not estancias_section:
+        print("⚠️  No se encontró sección de estancias")
+        return []
+    
+    # Buscar la tabla dentro de la sección
+    table = estancias_section.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de estancias")
+        return []
+    
+    estancias = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        if len(cells) >= 6:
+            estancia = {
+                'numero': cells[0].text.strip(),
+                'curso': cells[1].text.strip(),
+                'empresa': cells[2].text.strip(),
+                'descripcion': cells[3].text.strip(),
+                'periodo': cells[4].text.strip(),
+                'estatus': cells[5].text.strip()
+            }
+            estancias.append(estancia)
+    
+    print(f"✅ Estancias parseadas: {len(estancias)} registros encontrados")
+    return estancias
+
+
+def parse_servicio_social(html: str) -> Dict[str, Any]:
+    """
+    Parsea el estatus del servicio social del estudiante.
+    
+    Extrae información del servicio social desde la sección correspondiente
+    del endpoint de información general.
+    
+    Args:
+        html: HTML de la página de información general (alumno_informacion_general)
+        
+    Returns:
+        Diccionario con datos del servicio social
+        
+    Ejemplo de retorno:
+        {
+            'activo': False,
+            'materias_requeridas': '45',
+            'materias_faltantes': '0',
+            'estatus': 'PUEDE REALIZAR SERVICIO SOCIAL',
+            'cumple_requisitos': True
+        }
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la sección de servicio social
+    servicio_section = None
+    for fieldset in soup.find_all('fieldset'):
+        legend = fieldset.find('legend')
+        if legend and 'Servicio Social' in legend.text:
+            servicio_section = fieldset
+            break
+    
+    if not servicio_section:
+        print("⚠️  No se encontró sección de servicio social")
+        return {}
+    
+    # Buscar la tabla dentro de la sección
+    table = servicio_section.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de servicio social")
+        return {}
+    
+    servicio = {}
+    rows = table.find_all('tr')
+    
+    for row in rows:
+        cells = row.find_all('td')
+        if len(cells) >= 2:
+            key = cells[0].text.strip().rstrip(':')
+            value = cells[1].text.strip()
+            
+            if 'Servicio Social' in key:
+                servicio['activo'] = value.upper() == 'SI'
+            elif 'Materias Requeridas' in key:
+                servicio['materias_requeridas'] = value
+            elif 'Materias Faltantes' in key:
+                servicio['materias_faltantes'] = value
+            elif 'Estatus Servicio Social' in key:
+                servicio['estatus'] = value
+    
+    # Determinar si cumple requisitos
+    if servicio.get('materias_faltantes'):
+        servicio['cumple_requisitos'] = servicio['materias_faltantes'] == '0'
+    
+    print(f"✅ Servicio social parseado: {servicio}")
+    return servicio
+
