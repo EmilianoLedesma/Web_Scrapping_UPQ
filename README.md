@@ -242,29 +242,6 @@ TELEGRAM_BOT_TOKEN=tu_token_del_bot
 
 ---
 
-## 🔒 Seguridad
-
-### Mejores Prácticas
-
-| Aspecto | Implementación |
-|---------|----------------|
-| 🔐 **Gestión de Credenciales** | Nunca commitear `.env` (forzado vía `.gitignore`) |
-| 🌍 **Aislamiento de Entorno** | Todos los datos sensibles cargados desde variables de entorno |
-| 🍪 **Seguridad de Sesión** | Cookies mantenidas solo en memoria, nunca persistidas a disco |
-| 🔒 **Transporte Encriptado** | Todas las comunicaciones realizadas sobre HTTPS |
-| 👤 **Control de Acceso** | Diseño para uso personal, no multi-tenant |
-
-### Recomendaciones
-
-- ✅ Mantener credenciales seguras en `.env`
-- ✅ Rotar contraseñas periódicamente
-- ✅ Usar Python 3.8+ para últimas actualizaciones de seguridad
-- ✅ Mantener dependencias actualizadas
-- ⛔ Nunca compartir tu archivo `.env`
-- ⛔ No exponer el bot públicamente sin autenticación adicional
-
----
-
 ## 🧪 Pruebas
 
 ### Ejecutar Suite de Pruebas
@@ -371,28 +348,6 @@ def detect_changes(
 
 ---
 
-## 🤝 Contribuir
-
-¡Las contribuciones son bienvenidas! Por favor sigue estas pautas:
-
-### Flujo de Trabajo
-
-1. 🍴 Fork el repositorio
-2. 🌿 Crea un branch para tu feature: `git checkout -b feature/nueva-funcionalidad`
-3. 💾 Haz commit de tus cambios: `git commit -m 'Agregar nueva funcionalidad'`
-4. 📤 Push al branch: `git push origin feature/nueva-funcionalidad`
-5. 🎯 Envía un Pull Request
-
-### Estándares de Contribución
-
-- ✅ Seguir la guía de estilo PEP 8
-- ✅ Agregar type hints a todas las funciones
-- ✅ Escribir docstrings completos
-- ✅ Incluir pruebas unitarias para nuevas funcionalidades
-- ✅ Actualizar documentación según sea necesario
-
----
-
 ## 📜 Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
@@ -414,14 +369,6 @@ Este software se proporciona únicamente para uso educativo y personal. Los usua
 
 ---
 
-## 🙏 Agradecimientos
-
-- 🎓 Universidad Politécnica de Querétaro por la plataforma educativa
-- 🐍 Comunidad de Python por excelentes librerías y herramientas
-- 👥 Contribuidores y testers que ayudaron a mejorar este proyecto
-
----
-
 ## 💬 Soporte
 
 Para preguntas, issues o solicitudes de funcionalidades:
@@ -434,7 +381,5 @@ Para preguntas, issues o solicitudes de funcionalidades:
 <div align="center">
 
 **🐍 Construido con Python** | Mantenido por Emiliano Ledesma | Licencia MIT
-
-⭐ Si te gusta este proyecto, ¡dale una estrella en GitHub!
 
 </div>
