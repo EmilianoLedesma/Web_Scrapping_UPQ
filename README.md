@@ -1,266 +1,440 @@
-# UPQ Sistema Integral - Web Scraper
+# 🎓 UPQ Sistema Integral - Web Scraper
 
-Automated web scraping system for extracting and monitoring academic data from Universidad Politécnica de Querétaro (UPQ) Sistema Integral.
+> Sistema automatizado de extracción y monitoreo en tiempo real de datos académicos del Sistema Integral de la Universidad Politécnica de Querétaro.
 
-## Features
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Telegram](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://telegram.org/)
 
-- **Telegram Bot Integration** - Natural language processing for conversational queries
-- **Automated Authentication** - Persistent session management with cookie handling
-- **Robust HTML Parsing** - CSS-agnostic parsing that adapts to layout changes
-- **Change Detection** - Automatic monitoring and notification of grade updates
-- **Persistent Storage** - Complete history tracking with JSON snapshots
-- **CLI Interface** - Multiple command-line operations for data extraction
-- **Modular Architecture** - Extensible codebase ready for API integration
-- **Type Safety** - Complete type hints and comprehensive error handling
+---
 
-## Requirements
+## 📋 Descripción
 
-- Python 3.8 or higher
-- Internet connection
-- Valid UPQ Sistema Integral credentials
+Sistema profesional de web scraping que proporciona acceso automatizado a la plataforma académica de la UPQ con análisis inteligente, almacenamiento persistente y notificaciones en tiempo real a través de Telegram.
 
-## Quick Start
+## ✨ Características Principales
 
-### Installation
+- 🤖 **Integración con Telegram** - Interfaz conversacional para consultar calificaciones remotamente
+- 🔐 **Autenticación Automatizada** - Gestión segura de sesiones con manejo encriptado de credenciales
+- 🎯 **Análisis Inteligente de HTML** - Motor de parsing adaptativo resistente a cambios de la plataforma
+- 🔔 **Detección de Cambios en Tiempo Real** - Notificaciones instantáneas de actualizaciones de calificaciones
+- 💾 **Almacenamiento Persistente** - Historial completo con snapshots con marca de tiempo en formato JSON
+- ⌨️ **Interfaz de Línea de Comandos** - CLI completa para scripting y automatización
+- 🏗️ **Arquitectura Modular** - Separación clara de responsabilidades, lista para integración con API REST
+- 🔒 **Código Type-Safe** - Type hints completos y soporte para análisis estático
 
-1. **Clone the repository**
+## 🚀 Instalación
+
+### Requisitos Previos
+
+- Python 3.8 o superior
+- pip (gestor de paquetes)
+- Git
+- Credenciales válidas del Sistema Integral UPQ
+
+### Instrucciones de Instalación
+
+**1. Clonar el repositorio:**
 
 ```bash
-git clone https://github.com/yourusername/upq-scraper.git
-cd upq-scraper
+git clone https://github.com/EmilianoLedesma/Web_Scrapping_UPQ.git
+cd Web_Scrapping_UPQ
 ```
 
-2. **Create virtual environment**
+**2. Crear y activar entorno virtual:**
 
 ```bash
-# Windows
+# Windows PowerShell
 python -m venv venv
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 
 # Linux/macOS
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-3. **Install dependencies**
+**3. Instalar dependencias:**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Configure credentials**
-
-Copy the example environment file and add your credentials:
+**4. Configurar variables de entorno:**
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` file:
+Edita `.env` con tus credenciales:
 
 ```env
-UPQ_USERNAME=your_student_id
-UPQ_PASSWORD=your_password
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token  # Optional
+UPQ_USERNAME=tu_matricula
+UPQ_PASSWORD=tu_contraseña
+TELEGRAM_BOT_TOKEN=tu_token_de_telegram  # Opcional, para el bot
 ```
 
-## Usage
+---
 
-### CLI Commands
+## 💻 Uso
 
-**Get current grades**
+### Interfaz de Línea de Comandos
+
+#### 📊 Obtener Calificaciones Actuales
 
 ```bash
 python main.py --get-grades
 ```
 
-**Check for new grades**
+#### 🔍 Verificar Cambios en Calificaciones
 
 ```bash
 python main.py --check-new
 ```
 
-**View statistics**
+#### 📈 Mostrar Estadísticas
 
 ```bash
 python main.py --stats
 ```
 
-**Export data**
+#### 💾 Exportar Datos
 
 ```bash
 python main.py --export backup.json
 ```
 
-**JSON output**
+#### 📄 Salida en Formato JSON
 
 ```bash
 python main.py --json
 ```
 
-### Telegram Bot
+### 🤖 Interfaz del Bot de Telegram
 
-1. **Start the bot**
+**Iniciar el bot:**
 
 ```bash
 python run_bot.py
 ```
 
-2. **Available commands**
+**Comandos disponibles:**
 
-- `/start` - Initialize bot
-- `/grades` - View current grades
-- `/check` - Check for updates
-- `/stats` - View statistics
-- `/help` - Show help
+| Comando | Descripción |
+|---------|-------------|
+| `/start` | Inicializar el bot y mostrar mensaje de bienvenida |
+| `/grades` | Obtener y mostrar calificaciones actuales |
+| `/check` | Verificar actualizaciones de calificaciones |
+| `/stats` | Ver estadísticas del sistema |
+| `/help` | Mostrar ayuda de comandos |
 
-For detailed bot documentation, see [bot/README.md](bot/README.md)
+Para documentación detallada del bot, consulta [bot/README.md](bot/README.md)
 
-## Project Structure
+---
 
-```
+## 🏗️ Arquitectura Técnica
+
+### Componentes del Sistema
+
+```text
 upq-scraper/
-├── config/              # Configuration management
-│   └── settings.py
-├── scraper/             # Core scraping logic
-│   ├── auth.py         # Authentication handler
-│   ├── parser.py       # HTML parser
-│   └── fetcher.py      # HTTP client
-├── storage/             # Data persistence
-│   └── memory.py       # JSON storage handler
-├── bot/                 # Telegram bot integration
-│   └── telegram_bot.py
-├── tests/               # Unit tests
-│   └── test_scraper.py
-├── tools/               # Utility scripts
-├── main.py              # CLI entry point
-├── run_bot.py           # Bot launcher
-└── requirements.txt     # Python dependencies
+├── 📁 config/              # Configuración y gestión de entorno
+│   └── settings.py         # Cargador centralizado de configuración
+├── 📁 scraper/             # Motor principal de scraping
+│   ├── auth.py            # Gestión de autenticación y sesiones
+│   ├── parser.py          # Parser adaptativo de HTML
+│   └── fetcher.py         # Cliente HTTP con lógica de reintentos
+├── 📁 storage/             # Capa de persistencia de datos
+│   └── memory.py          # Almacenamiento JSON con historial
+├── 📁 bot/                 # Integración con Telegram
+│   └── telegram_bot.py    # Manejadores y comandos del bot
+├── 📁 tests/               # Suite de pruebas
+│   └── test_scraper.py    # Pruebas unitarias e integración
+├── 📁 tools/               # Scripts de utilidad y exploradores
+├── 📄 main.py              # Punto de entrada CLI
+├── 📄 run_bot.py           # Lanzador del servicio del bot
+└── 📄 requirements.txt     # Manifiesto de dependencias
 ```
 
-## Architecture
+### Flujo de Autenticación
 
-### Authentication Flow
+```mermaid
+graph LR
+    A[Inicio] --> B[POST a alumnos.php/signin]
+    B --> C[Gestión de Sesión]
+    C --> D[Cookies en requests.Session]
+    D --> E[Ejecución de Requests]
+    E --> F{Sesión Válida?}
+    F -->|Sí| G[Continuar]
+    F -->|No| B
+```
 
-1. POST credentials to `alumnos.php/signin`
-2. Maintain session using `requests.Session()` with cookies
-3. Use authenticated session for all subsequent requests
+**Pasos:**
+1. 🔑 **Login Inicial**: POST de credenciales a `alumnos.php/signin`
+2. 🍪 **Gestión de Sesión**: Mantener sesión autenticada vía `requests.Session()` con cookies
+3. 🔄 **Ejecución de Requests**: Todos los requests subsecuentes usan el contexto de sesión autenticada
+4. ✅ **Validación de Sesión**: Detección automática y re-autenticación en caso de expiración
 
-### HTML Parsing Strategy
+### Estrategia de Parsing HTML
 
-The parser is designed to be resilient to HTML changes:
+Parsing resiliente diseñado para manejar actualizaciones de la plataforma:
 
-- Locates tables by header content instead of CSS classes
-- Identifies columns by text matching (e.g., "materia", "calificación")
-- Uses flexible regex patterns
-- Implements multiple fallback strategies
+- 🎯 **Identificación de Tablas basada en Contenido**: Localiza tablas analizando texto de encabezados en lugar de clases CSS
+- 🗺️ **Mapeo Dinámico de Columnas**: Identifica columnas de datos mediante patrones de coincidencia de texto
+- 🔍 **Patrones Regex Flexibles**: Patrones adaptativos para extraer datos estructurados
+- 🔄 **Fallback Multi-nivel**: Implementa estrategias de respaldo en cascada para fallos de parsing
+- ✔️ **Capa de Validación**: Validación cruzada de datos extraídos contra formatos esperados
 
-### Change Detection
+### Algoritmo de Detección de Cambios
 
-1. Saves snapshot on each grade fetch
-2. Compares with last snapshot when checking for updates
-3. Detects:
-   - New courses
-   - New grades (null to value)
-   - Updated grades (value change)
+```python
+# Pseudocódigo del algoritmo
+snapshot_actual = obtener_calificaciones()
+snapshot_anterior = cargar_ultimo_snapshot()
 
-## Configuration
+cambios = detectar_diferencias(snapshot_actual, snapshot_anterior)
 
-All settings are managed through environment variables in `.env`:
+for cambio in cambios:
+    if cambio.tipo == "NUEVA_MATERIA":
+        notificar("Nueva materia agregada")
+    elif cambio.tipo == "CALIFICACION_PUBLICADA":
+        notificar(f"Nueva calificación: {cambio.valor}")
+    elif cambio.tipo == "CALIFICACION_MODIFICADA":
+        notificar(f"Calificación actualizada: {cambio.anterior} → {cambio.nuevo}")
+```
+
+**Proceso:**
+1. 📸 **Creación de Snapshot**: Generar snapshot con marca de tiempo en cada consulta
+2. 🔍 **Análisis Diferencial**: Comparar estado actual con último snapshot guardado
+3. 🏷️ **Clasificación de Eventos**: Categorizar cambios en:
+   - ➕ Nuevas materias agregadas
+   - 📝 Calificaciones publicadas (null → valor)
+   - 🔄 Calificaciones modificadas (valor → nuevo valor)
+4. 🔔 **Envío de Notificaciones**: Disparar alertas para cambios detectados
+
+---
+
+## ⚙️ Configuración
+
+### Variables de Entorno
+
+Configuración en archivo `.env`:
 
 ```env
-# Authentication
-UPQ_USERNAME=your_student_id
-UPQ_PASSWORD=your_password
+# Credenciales de Autenticación
+UPQ_USERNAME=tu_matricula
+UPQ_PASSWORD=tu_contraseña
 
-# System URLs
+# Endpoints del Sistema
 UPQ_BASE_URL=https://sistemaintegral.upq.edu.mx
 UPQ_LOGIN_URL=https://sistemaintegral.upq.edu.mx/alumnos.php/signin
 UPQ_GRADES_URL=https://sistemaintegral.upq.edu.mx/alumnos.php/carga-academica
 
-# Request Configuration
+# Configuración del Cliente HTTP
 REQUEST_TIMEOUT=30
 USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 
-# Storage
+# Almacenamiento de Datos
 STORAGE_PATH=storage/grades_history.json
+
+# Integración con Telegram (Opcional)
+TELEGRAM_BOT_TOKEN=tu_token_del_bot
 ```
 
-## Security
+---
 
-- Never commit `.env` file (already in `.gitignore`)
-- Credentials loaded from environment variables only
-- Session cookies kept in memory, not persisted to disk
-- All communication over HTTPS
+## 🔒 Seguridad
 
-## Error Handling
+### Mejores Prácticas
 
-The system handles:
+| Aspecto | Implementación |
+|---------|----------------|
+| 🔐 **Gestión de Credenciales** | Nunca commitear `.env` (forzado vía `.gitignore`) |
+| 🌍 **Aislamiento de Entorno** | Todos los datos sensibles cargados desde variables de entorno |
+| 🍪 **Seguridad de Sesión** | Cookies mantenidas solo en memoria, nunca persistidas a disco |
+| 🔒 **Transporte Encriptado** | Todas las comunicaciones realizadas sobre HTTPS |
+| 👤 **Control de Acceso** | Diseño para uso personal, no multi-tenant |
 
-- Invalid credentials validation
-- Network timeouts (configurable)
-- Session expiration detection
-- HTML format variations
-- Connection failures
+### Recomendaciones
 
-## Testing
+- ✅ Mantener credenciales seguras en `.env`
+- ✅ Rotar contraseñas periódicamente
+- ✅ Usar Python 3.8+ para últimas actualizaciones de seguridad
+- ✅ Mantener dependencias actualizadas
+- ⛔ Nunca compartir tu archivo `.env`
+- ⛔ No exponer el bot públicamente sin autenticación adicional
+
+---
+
+## 🧪 Pruebas
+
+### Ejecutar Suite de Pruebas
 
 ```bash
+# Ejecutar todas las pruebas
 pytest tests/
+
+# Ejecutar con reporte de cobertura
+pytest tests/ --cov=scraper --cov=storage --cov=bot
+
+# Ejecutar archivo específico con verbosidad
+pytest tests/test_scraper.py -v
 ```
 
-## Development
+### Cobertura de Pruebas
 
-### Adding New Features
+```bash
+# Generar reporte HTML de cobertura
+pytest tests/ --cov=scraper --cov-report=html
 
-The modular design allows easy extension:
+# Ver reporte en navegador
+open htmlcov/index.html  # macOS/Linux
+start htmlcov/index.html # Windows
+```
 
-- **New scrapers**: Add to `scraper/`
-- **Export formats**: Extend `storage/memory.py`
-- **Bot commands**: Implement in `bot/telegram_bot.py`
-- **REST API**: Create new module in `api/`
+---
 
-### Type Hints
+## 🛠️ Guía de Desarrollo
 
-All code uses Python type hints for maintainability:
+### Puntos de Extensión
+
+El diseño modular facilita la adición de funcionalidades:
+
+| Módulo | Ubicación | Descripción |
+|--------|-----------|-------------|
+| 🕷️ **Scrapers Personalizados** | `scraper/` | Implementar nuevos parsers |
+| 💾 **Formatos de Exportación** | `storage/memory.py` | Extender con serializadores adicionales |
+| 🤖 **Comandos de Bot** | `bot/telegram_bot.py` | Agregar manejadores |
+| 🌐 **REST API** | Crear `api/` | Nuevos endpoints HTTP |
+
+### Sistema de Tipos
+
+Aprovechar type hints de Python para mantenibilidad:
 
 ```python
+from typing import Dict, Any, Optional, List
+
 def parse_grades(self) -> Dict[str, Any]:
-    """Parse grades with defined types."""
+    """
+    Analizar calificaciones desde respuesta HTML.
+    
+    Returns:
+        Dict conteniendo datos estructurados de calificaciones
+    """
+    pass
+
+def detect_changes(
+    self, 
+    current: Dict[str, Any], 
+    previous: Optional[Dict[str, Any]] = None
+) -> List[Dict[str, Any]]:
+    """Detectar cambios entre snapshots."""
     pass
 ```
 
-## Roadmap
+### Estándares de Calidad
 
-- [ ] Automated notifications via Telegram
-- [ ] Multi-account support
-- [ ] Web dashboard with Flask
-- [ ] Grade evolution charts
-- [ ] Automatic GPA calculation
-- [ ] PDF export
-- [ ] Email notifications
-- [ ] Mobile app with React Native
+- 📏 **Guía de Estilo**: Cumplimiento con PEP 8
+- 🔍 **Type Checking**: Análisis estático con mypy
+- 📝 **Documentación**: Docstrings completos
+- ✅ **Testing**: Cobertura mínima del 80%
+- 🎨 **Formateo**: Uso de black para consistencia
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/new-feature`)
-3. Commit changes (`git commit -m 'Add new feature'`)
-4. Push to branch (`git push origin feature/new-feature`)
-5. Open Pull Request
+## 🗺️ Roadmap
 
-## License
+### Funcionalidades Planificadas
 
-This project is open source and available under the MIT License.
+#### Fase 1: Mejoras Inmediatas
+- [ ] 🔔 **Notificaciones en Tiempo Real**: Alertas automáticas de Telegram en cambios de calificaciones
+- [ ] 👥 **Soporte Multi-Cuenta**: Gestionar múltiples cuentas de estudiantes desde una interfaz
+- [ ] 📊 **Dashboard Web**: Panel de visualización con Flask y gráficos interactivos
 
-## Disclaimer
+#### Fase 2: Análisis y Reportes
+- [ ] 📈 **Motor de Análisis**: Análisis de tendencias de calificaciones y modelado predictivo
+- [ ] 🧮 **Calculadora de Promedio**: Cálculo automático de promedio ponderado
+- [ ] 📄 **Formatos de Exportación**: Reportes PDF con plantillas personalizables
+- [ ] 📧 **Integración con Email**: Notificaciones configurables por correo electrónico
 
-This project is for educational and personal use only. Use responsibly and respect UPQ's terms of service.
+#### Fase 3: Plataforma Completa
+- [ ] 📱 **Aplicación Móvil**: App multiplataforma con React Native
+- [ ] 🌐 **API Gateway**: API RESTful para integraciones de terceros
+- [ ] 🗄️ **Backend de Base de Datos**: PostgreSQL/MongoDB para almacenamiento escalable
+- [ ] 🔄 **Sistema de Caché**: Redis para optimización de consultas
 
-## Author
+### Optimizaciones de Rendimiento
 
-Developed by Emiliano Ledesma
+- [ ] ⚡ Requests HTTP asíncronos para consultas paralelas
+- [ ] 💨 Capa de caché para datos frecuentemente accedidos
+- [ ] 🚦 Rate limiting y pooling de requests
+- [ ] ⏰ Scheduling de trabajos en background con Celery
 
-## Support
+---
 
-For issues or questions, please open an issue on the repository.
+## 🤝 Contribuir
+
+¡Las contribuciones son bienvenidas! Por favor sigue estas pautas:
+
+### Flujo de Trabajo
+
+1. 🍴 Fork el repositorio
+2. 🌿 Crea un branch para tu feature: `git checkout -b feature/nueva-funcionalidad`
+3. 💾 Haz commit de tus cambios: `git commit -m 'Agregar nueva funcionalidad'`
+4. 📤 Push al branch: `git push origin feature/nueva-funcionalidad`
+5. 🎯 Envía un Pull Request
+
+### Estándares de Contribución
+
+- ✅ Seguir la guía de estilo PEP 8
+- ✅ Agregar type hints a todas las funciones
+- ✅ Escribir docstrings completos
+- ✅ Incluir pruebas unitarias para nuevas funcionalidades
+- ✅ Actualizar documentación según sea necesario
+
+---
+
+## 📜 Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+
+---
+
+## ⚖️ Aviso Legal
+
+Este software se proporciona únicamente para uso educativo y personal. Los usuarios son responsables de cumplir con los términos de servicio de la Universidad Politécnica de Querétaro y las regulaciones aplicables. Los desarrolladores no asumen responsabilidad por uso indebido o violaciones.
+
+---
+
+## 👨‍💻 Autor
+
+### Emiliano Ledesma
+
+- 🐙 GitHub: [@EmilianoLedesma](https://github.com/EmilianoLedesma)
+- 💼 Proyecto: [Web_Scrapping_UPQ](https://github.com/EmilianoLedesma/Web_Scrapping_UPQ)
+
+---
+
+## 🙏 Agradecimientos
+
+- 🎓 Universidad Politécnica de Querétaro por la plataforma educativa
+- 🐍 Comunidad de Python por excelentes librerías y herramientas
+- 👥 Contribuidores y testers que ayudaron a mejorar este proyecto
+
+---
+
+## 💬 Soporte
+
+Para preguntas, issues o solicitudes de funcionalidades:
+
+- 🐛 **Issues**: [GitHub Issues](https://github.com/EmilianoLedesma/Web_Scrapping_UPQ/issues)
+- 💭 **Discusiones**: [GitHub Discussions](https://github.com/EmilianoLedesma/Web_Scrapping_UPQ/discussions)
+
+---
+
+<div align="center">
+
+**🐍 Construido con Python** | Mantenido por Emiliano Ledesma | Licencia MIT
+
+⭐ Si te gusta este proyecto, ¡dale una estrella en GitHub!
+
+</div>
