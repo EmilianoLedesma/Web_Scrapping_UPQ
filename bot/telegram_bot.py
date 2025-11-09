@@ -196,7 +196,7 @@ class UPQTelegramBot:
         # Verificar si el usuario ya tiene credenciales
         if self.credentials_manager.has_credentials(user_id):
             welcome_message = """
-🎓 *Bot de Calificaciones UPQ*
+🎓 Bot de Calificaciones UPQ
 
 ¡Bienvenido de nuevo! Ya tienes tus credenciales configuradas.
 
@@ -216,13 +216,13 @@ Puedes escribir cosas como:
 /help - Ayuda completa
 /logout - Cerrar sesión y borrar credenciales
 
-🔐 *Tus credenciales están seguras y solo tú puedes acceder a ellas.*
+🔐 Tus credenciales están seguras y solo tú puedes acceder a ellas.
 """
-            await update.message.reply_text(welcome_message, parse_mode='Markdown')
+            await update.message.reply_text(welcome_message)
         else:
             # Usuario nuevo - solicitar credenciales
             welcome_message = """
-🎓 *Bienvenido al Bot de Calificaciones UPQ*
+🎓 Bienvenido al Bot de Calificaciones UPQ
 
 Para usar este bot necesito que configures tus credenciales del Sistema UPQ.
 
@@ -231,12 +231,12 @@ Para usar este bot necesito que configures tus credenciales del Sistema UPQ.
 • Solo tú puedes acceder a tu información
 • Puedes eliminarlas en cualquier momento con /logout
 
-📝 *Para comenzar, envíame tu matrícula UPQ*
+📝 Para comenzar, envíame tu matrícula UPQ
 Ejemplo: `123046244`
 
-⚠️ *Nota:* Este bot es personal y tus datos no se comparten con nadie.
+⚠️ Nota: Este bot es personal y tus datos no se comparten con nadie.
 """
-            await update.message.reply_text(welcome_message, parse_mode='Markdown')
+            await update.message.reply_text(welcome_message)
             
             # Marcar que estamos esperando la matrícula
             self.pending_registration[user_id] = {'step': 'username'}
@@ -252,7 +252,7 @@ Ejemplo: `123046244`
                 del self.pending_registration[user_id]
             
             message = """
-🔓 *Sesión cerrada*
+🔓 Sesión cerrada
 
 Tus credenciales han sido eliminadas de forma segura.
 
@@ -260,19 +260,19 @@ Para volver a usar el bot, usa /start para configurar nuevas credenciales.
 
 ¡Hasta pronto! 👋
 """
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
         else:
             message = """
 ⚠️ No tienes credenciales guardadas.
 
 Usa /start para configurar tus credenciales y comenzar a usar el bot.
 """
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
         
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Comando /help - Muestra ayuda."""
         help_text = """
-📚 *Ayuda - Bot de Calificaciones UPQ*
+📚 Ayuda - Bot de Calificaciones UPQ
 
 *� ¡Habla conmigo naturalmente!*
 Puedes preguntarme:
@@ -317,7 +317,7 @@ Puedes preguntarme:
 /logout - Eliminar credenciales
 /help - Este mensaje
 """
-        await update.message.reply_text(help_text, parse_mode='Markdown')
+        await update.message.reply_text(help_text)
     
     # ========== COMANDOS NUEVOS CON DATOS ADICIONALES ==========
     
@@ -339,26 +339,26 @@ Puedes preguntarme:
                 await update.message.reply_text("❌ No se pudo obtener información del perfil")
                 return
             
-            message = "👤 *Información Personal*\n\n"
+            message = "👤 Información Personal\n\n"
             
             if 'nombre' in profile:
-                message += f"*Nombre:* {profile['nombre']}\n"
+                message += f"Nombre: {profile['nombre']}\n"
             if 'matricula' in profile:
-                message += f"*Matrícula:* `{profile['matricula']}`\n"
+                message += f"Matrícula: `{profile['matricula']}`\n"
             if 'carrera' in profile:
-                message += f"*Carrera:* {profile['carrera']}\n"
+                message += f"Carrera: {profile['carrera']}\n"
             if 'cuatrimestre' in profile:
-                message += f"*Cuatrimestre:* {profile['cuatrimestre']}\n"
+                message += f"Cuatrimestre: {profile['cuatrimestre']}\n"
             if 'grupo' in profile:
-                message += f"*Grupo:* {profile['grupo']}\n"
+                message += f"Grupo: {profile['grupo']}\n"
             if 'generacion' in profile:
-                message += f"*Generación:* {profile['generacion']}\n"
+                message += f"Generación: {profile['generacion']}\n"
             if 'promedio' in profile:
-                message += f"\n📊 *Promedio General:* `{profile['promedio']}`\n"
+                message += f"\n📊 Promedio General: `{profile['promedio']}`\n"
             if 'creditos' in profile:
-                message += f"💳 *Créditos:* {profile['creditos']}\n"
+                message += f"💳 Créditos: {profile['creditos']}\n"
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             
         except Exception as e:
             self.logger.error(f"Error en info_general_command: {e}")
@@ -383,7 +383,7 @@ Puedes preguntarme:
                 return
             
             promedio = profile['promedio']
-            message = f"📊 *Tu Promedio General*\n\n"
+            message = f"📊 Tu Promedio General\n\n"
             message += f"Tu promedio actual es: *{promedio}*\n\n"
             
             # Agregar emoji según el promedio
@@ -400,7 +400,7 @@ Puedes preguntarme:
             except:
                 pass
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             
         except Exception as e:
             self.logger.error(f"Error en promedio_command: {e}")
@@ -425,7 +425,7 @@ Puedes preguntarme:
                 return
             
             creditos_text = profile['creditos']
-            message = f"💳 *Créditos Aprobados*\n\n"
+            message = f"💳 Créditos Aprobados\n\n"
             message += f"{creditos_text}\n\n"
             
             # Intentar calcular porcentaje si viene en formato "X/Y"
@@ -437,8 +437,8 @@ Puedes preguntarme:
                     porcentaje = (aprobados / totales) * 100
                     faltantes = totales - aprobados
                     
-                    message += f"📈 *Avance:* {porcentaje:.1f}%\n"
-                    message += f"📝 *Te faltan:* {faltantes} créditos\n\n"
+                    message += f"📈 Avance: {porcentaje:.1f}%\n"
+                    message += f"📝 Te faltan: {faltantes} créditos\n\n"
                     
                     if porcentaje >= 90:
                         message += "🎓 ¡Casi listo para graduarte!"
@@ -451,7 +451,7 @@ Puedes preguntarme:
                 except:
                     pass
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             
         except Exception as e:
             self.logger.error(f"Error en creditos_command: {e}")
@@ -493,7 +493,7 @@ Puedes preguntarme:
                 await update.message.reply_text("📝 No se encontraron estancias registradas")
                 return
             
-            message = "💼 *ESTANCIAS PROFESIONALES*\n\n"
+            message = "💼 ESTANCIAS PROFESIONALES\n\n"
             
             for estancia in estancias:
                 curso = estancia.get('curso', 'N/A')
@@ -517,7 +517,7 @@ Puedes preguntarme:
                 
                 message += "\n"
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             
         except Exception as e:
             self.logger.error(f"Error en estancias_command: {e}")
@@ -548,7 +548,7 @@ Puedes preguntarme:
                 message += "No tienes materias atrasadas o reprobadas.\n"
                 message += "¡Sigue así! 🎉"
             else:
-                message = f"⚠️ *Materias Pendientes*\n\n"
+                message = f"⚠️ Materias Pendientes\n\n"
                 message += f"Tienes *{resultado['total']}* materia(s) con calificación baja o pendiente:\n\n"
                 
                 for materia in resultado['materias']:
@@ -557,7 +557,7 @@ Puedes preguntarme:
                 
                 message += "💪 ¡No te rindas! Consulta con tus profesores."
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             
         except Exception as e:
             self.logger.error(f"Error en materias_atrasadas_command: {e}")
@@ -587,7 +587,7 @@ Puedes preguntarme:
                 await update.message.reply_text("📝 No se encontró historial de promedios")
                 return
             
-            message = "📈 *Historial de Promedios*\n\n"
+            message = "📈 Historial de Promedios\n\n"
             
             for item in historial:
                 cuatri = item['cuatrimestre']
@@ -596,7 +596,7 @@ Puedes preguntarme:
             
             message += "\n💡 Tip: Analiza tu evolución para identificar patrones"
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             
         except Exception as e:
             self.logger.error(f"Error en historial_command: {e}")
@@ -636,7 +636,7 @@ Puedes preguntarme:
             header = table_horario.find('tr')
             dias = [th.text.strip() for th in header.find_all('th')[1:]]
             
-            message = "📅 *HORARIO DE CLASES*\n\n"
+            message = "📅 HORARIO DE CLASES\n\n"
             
             # Procesar filas (saltar header)
             rows = table_horario.find_all('tr')[1:]
@@ -667,7 +667,7 @@ Puedes preguntarme:
             if not any(horario_dict.values()):
                 message += "� No hay clases programadas"
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
                     
         except Exception as e:
             self.logger.error(f"Error en horario_command: {e}")
@@ -710,7 +710,7 @@ Puedes preguntarme:
                 return
             
             # Formatear respuesta
-            mensaje = "� *KARDEX ACADÉMICO*\n\n"
+            mensaje = "� KARDEX ACADÉMICO\n\n"
             
             cuatrimestre_actual = None
             for materia in materias:
@@ -736,7 +736,7 @@ Puedes preguntarme:
             
             mensaje += f"\n📊 Total: {len(materias)} materias cursadas"
             
-            await update.message.reply_text(mensaje, parse_mode='Markdown')
+            await update.message.reply_text(mensaje)
             
         except Exception as e:
             self.logger.error(f"Error en kardex_command: {e}")
@@ -745,7 +745,7 @@ Puedes preguntarme:
     async def boleta_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra la boleta de calificaciones."""
         user_id = update.effective_user.id
-        await update.message.reply_text("📋 Consultando tu boleta...")
+        await update.message.reply_text("📋 Consultando tu boleta de calificaciones...")
         
         try:
             creds = self.credentials_manager.get_credentials(user_id)
@@ -761,20 +761,42 @@ Puedes preguntarme:
                 html = session.get_boleta()
                 soup = BeautifulSoup(html, 'html.parser')
                 
-                message = "📋 *Boleta de Calificaciones*\n\n"
+                message = "📋 BOLETA DE CALIFICACIONES\n"
+                message += "═" * 40 + "\n\n"
+                message += "Esta es tu boleta de calificaciones del periodo actual con el detalle de todas tus materias.\n\n"
+                
                 tables = soup.find_all('table')
                 
                 if tables:
+                    # Buscar la tabla principal de calificaciones
                     for table in tables[:1]:
                         rows = table.find_all('tr')
-                        for row in rows[:20]:  # Limitar a 20 filas
+                        headers = []
+                        
+                        for i, row in enumerate(rows[:25]):
                             cols = row.find_all(['th', 'td'])
-                            if cols:
-                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
-                                message += f"`{row_text}`\n"
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                            if not cols:
+                                continue
+                            
+                            # Primera fila son los encabezados
+                            if i == 0:
+                                headers = [col.get_text(strip=True) for col in cols]
+                                continue
+                            
+                            # Procesar filas de datos
+                            data = [col.get_text(strip=True) for col in cols]
+                            if len(data) > 0:
+                                message += "─" * 40 + "\n"
+                                # Mostrar cada campo con su valor
+                                for j, value in enumerate(data):
+                                    if j < len(headers) and value:
+                                        label = headers[j] if j < len(headers) else f"Campo {j+1}"
+                                        message += f"{label}: {value}\n"
+                                message += "\n"
+                    
+                    await update.message.reply_text(message)
                 else:
-                    await update.message.reply_text("📝 No se encontró boleta")
+                    await update.message.reply_text("📝 No se encontró información de boleta disponible")
                     
         except Exception as e:
             self.logger.error(f"Error en boleta_command: {e}")
@@ -819,14 +841,14 @@ Puedes preguntarme:
                 return
             
             # Construir mensaje
-            message = "🎓 *SERVICIO SOCIAL*\n\n"
+            message = "🎓 SERVICIO SOCIAL\n\n"
             
             # Estado del servicio
             activo = servicio.get('activo', False)
             if activo:
-                message += "✅ *Servicio social ACTIVO*\n\n"
+                message += "✅ Servicio social ACTIVO\n\n"
             else:
-                message += "⏸️ *Servicio social NO ACTIVO*\n\n"
+                message += "⏸️ Servicio social NO ACTIVO\n\n"
             
             # Requisitos
             mat_req = servicio.get('materias_requeridas', 'N/A')
@@ -846,7 +868,7 @@ Puedes preguntarme:
                 message += f"⚠️ *{estatus}*\n"
                 message += f"Te faltan {mat_falt} materias para cumplir requisitos."
             
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             
         except Exception as e:
             self.logger.error(f"Error en servicio_social_command: {e}")
@@ -909,33 +931,33 @@ Puedes preguntarme:
             email_tutor = get_field('email', 'email_tutor')
             
             mensaje = f"""
-👤 *PERFIL ACADÉMICO*
+👤 PERFIL ACADÉMICO
 
-*Datos Personales:*
+Datos Personales:
 ├ Nombre: {nombre}
 ├ Matrícula: {matricula}
 ├ NSS: {nss}
 └ Estatus: {estatus}
 
-*Datos Académicos:*
+Datos Académicos:
 ├ Carrera: {carrera}
 ├ Generación: {generacion}
 ├ Grupo: {grupo}
 ├ Cuatrimestre: {cuatrimestre}
 └ Promedio: *{promedio}* 📊
 
-*Progreso:*
+Progreso:
 ├ Materias Aprobadas: {materias_aprob}
 ├ Materias Reprobadas: {materias_reprob}
 ├ Créditos: {creditos}
 └ Nivel Inglés: {nivel_ingles}
 
-*Tutoría:*
+Tutoría:
 ├ Tutor: {tutor}
 └ Email: {email_tutor}
 """
             
-            await update.message.reply_text(mensaje, parse_mode='Markdown')
+            await update.message.reply_text(mensaje)
             
         except Exception as e:
             self.logger.error(f"Error en perfil_personal_command: {e}")
@@ -960,18 +982,47 @@ Puedes preguntarme:
                 html = session.get_pagos()
                 soup = BeautifulSoup(html, 'html.parser')
                 
-                message = "💰 *Historial de Pagos*\n\n"
+                message = "💰 HISTORIAL DE PAGOS\n"
+                message += "═" * 40 + "\n\n"
+                message += "Este es el registro de todos los pagos que has realizado a la universidad.\n\n"
+                
                 tables = soup.find_all('table')
                 
                 if tables:
                     for table in tables[:1]:
                         rows = table.find_all('tr')
-                        for row in rows[:15]:  # Limitar a 15 pagos
+                        headers = []
+                        pago_count = 0
+                        
+                        for i, row in enumerate(rows[:20]):
                             cols = row.find_all(['th', 'td'])
-                            if cols:
-                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
-                                message += f"`{row_text}`\n"
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                            if not cols:
+                                continue
+                            
+                            # Primera fila son los encabezados
+                            if i == 0:
+                                headers = [col.get_text(strip=True) for col in cols]
+                                continue
+                            
+                            # Procesar filas de datos
+                            data = [col.get_text(strip=True) for col in cols]
+                            if len(data) > 0 and any(data):
+                                pago_count += 1
+                                message += f"▼ PAGO #{pago_count}\n"
+                                message += "─" * 40 + "\n"
+                                
+                                # Mostrar cada campo con su valor
+                                for j, value in enumerate(data):
+                                    if j < len(headers) and value:
+                                        label = headers[j] if j < len(headers) else f"Campo {j+1}"
+                                        message += f"{label}: {value}\n"
+                                message += "\n"
+                        
+                        if pago_count > 0:
+                            message += "═" * 40 + "\n"
+                            message += f"Total de pagos registrados: {pago_count}\n"
+                    
+                    await update.message.reply_text(message)
                 else:
                     await update.message.reply_text("📝 No se encontró historial de pagos")
                     
@@ -982,7 +1033,7 @@ Puedes preguntarme:
     async def adeudos_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra los adeudos pendientes."""
         user_id = update.effective_user.id
-        await update.message.reply_text("⚠️ Consultando adeudos...")
+        await update.message.reply_text("⚠️ Consultando adeudos pendientes...")
         
         try:
             creds = self.credentials_manager.get_credentials(user_id)
@@ -998,24 +1049,49 @@ Puedes preguntarme:
                 html = session.get_adeudos()
                 soup = BeautifulSoup(html, 'html.parser')
                 
-                message = "⚠️ *Adeudos Pendientes*\n\n"
+                message = "⚠️ ADEUDOS PENDIENTES\n"
+                message += "═" * 40 + "\n\n"
+                message += "Esta es la lista de pagos pendientes que tienes con la universidad.\n\n"
+                
                 tables = soup.find_all('table')
-                found = False
+                adeudo_count = 0
                 
                 if tables:
                     for table in tables[:1]:
                         rows = table.find_all('tr')
-                        for row in rows:
+                        headers = []
+                        
+                        for i, row in enumerate(rows):
                             cols = row.find_all(['th', 'td'])
-                            if cols:
-                                found = True
-                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
-                                message += f"`{row_text}`\n"
+                            if not cols:
+                                continue
+                            
+                            # Primera fila son los encabezados
+                            if i == 0:
+                                headers = [col.get_text(strip=True) for col in cols]
+                                continue
+                            
+                            # Procesar filas de datos
+                            data = [col.get_text(strip=True) for col in cols]
+                            if len(data) > 0 and any(data):
+                                adeudo_count += 1
+                                message += f"⚠️ ADEUDO #{adeudo_count}\n"
+                                message += "─" * 40 + "\n"
+                                
+                                # Mostrar cada campo con su valor
+                                for j, value in enumerate(data):
+                                    if j < len(headers) and value:
+                                        label = headers[j] if j < len(headers) else f"Campo {j+1}"
+                                        message += f"{label}: {value}\n"
+                                message += "\n"
                 
-                if found:
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                if adeudo_count > 0:
+                    message += "═" * 40 + "\n"
+                    message += f"⚠️ Total de adeudos pendientes: {adeudo_count}\n"
+                    message += "\nTe recomendamos ponerte al corriente con tus pagos."
+                    await update.message.reply_text(message)
                 else:
-                    await update.message.reply_text("✅ No tienes adeudos pendientes")
+                    await update.message.reply_text("✅ ¡Excelente! No tienes adeudos pendientes.\n\nEstás al corriente con todos tus pagos.")
                     
         except Exception as e:
             self.logger.error(f"Error en adeudos_command: {e}")
@@ -1040,7 +1116,7 @@ Puedes preguntarme:
                 html = session.get_documentos()
                 soup = BeautifulSoup(html, 'html.parser')
                 
-                message = "📄 *Documentos Escolares*\n\n"
+                message = "📄 Documentos Escolares\n\n"
                 documentos = []
                 links = soup.find_all('a')
                 
@@ -1052,7 +1128,7 @@ Puedes preguntarme:
                 
                 if documentos:
                     message += "\n".join(documentos)
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                    await update.message.reply_text(message)
                 else:
                     await update.message.reply_text("📝 No se encontraron documentos disponibles")
                     
@@ -1079,23 +1155,53 @@ Puedes preguntarme:
                 html = session.get_calendario()
                 soup = BeautifulSoup(html, 'html.parser')
                 
-                message = "📆 *Calendario Académico*\n\n"
+                message = "📆 CALENDARIO ACADÉMICO\n"
+                message += "═" * 40 + "\n\n"
+                message += "Este es el calendario con las fechas importantes del periodo académico actual.\n\n"
+                
                 tables = soup.find_all('table')
                 
                 if tables:
                     for table in tables[:1]:
                         rows = table.find_all('tr')
-                        for row in rows[:20]:  # Limitar a 20 eventos
+                        headers = []
+                        evento_count = 0
+                        
+                        for i, row in enumerate(rows[:25]):
                             cols = row.find_all(['th', 'td'])
-                            if cols:
-                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
-                                message += f"`{row_text}`\n"
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                            if not cols:
+                                continue
+                            
+                            # Primera fila son los encabezados
+                            if i == 0:
+                                headers = [col.get_text(strip=True) for col in cols]
+                                continue
+                            
+                            # Procesar filas de datos
+                            data = [col.get_text(strip=True) for col in cols]
+                            if len(data) > 0 and any(data):
+                                evento_count += 1
+                                message += f"📅 EVENTO #{evento_count}\n"
+                                message += "─" * 40 + "\n"
+                                
+                                # Mostrar cada campo con su valor
+                                for j, value in enumerate(data):
+                                    if j < len(headers) and value:
+                                        label = headers[j] if j < len(headers) else f"Campo {j+1}"
+                                        message += f"{label}: {value}\n"
+                                message += "\n"
+                        
+                        if evento_count > 0:
+                            message += "═" * 40 + "\n"
+                            message += f"Total de eventos: {evento_count}\n"
+                    
+                    await update.message.reply_text(message)
                 else:
-                    await update.message.reply_text("📝 No se encontró calendario académico")
+                    await update.message.reply_text("📝 No se encontró información del calendario académico")
                     
         except Exception as e:
             self.logger.error(f"Error en calendario_command: {e}")
+            await update.message.reply_text("❌ Error al obtener calendario académico")
             await update.message.reply_text("❌ Error al obtener calendario")
         
         
@@ -1140,7 +1246,7 @@ Puedes preguntarme:
                 # Formatear y enviar
                 if grades:
                     message = self._format_grades_message(grades)
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                    await update.message.reply_text(message)
                 else:
                     await update.message.reply_text("⚠️ No se encontraron calificaciones")
                     
@@ -1220,14 +1326,14 @@ Puedes preguntarme:
                 if changes:
                     message = f"🔔 *¡Se detectaron {len(changes)} cambios!*\n\n"
                     message += self._format_changes_message(changes)
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                    await update.message.reply_text(message)
                 else:
                     previous_snapshot = snapshots[-2]
                     message = (
-                        "✅ *No hay cambios desde la última verificación*\n\n"
+                        "✅ No hay cambios desde la última verificación\n\n"
                         f"Último check: `{previous_snapshot['timestamp']}`"
                     )
-                    await update.message.reply_text(message, parse_mode='Markdown')
+                    await update.message.reply_text(message)
                     
         except AuthenticationError as e:
             self.logger.error(f"Authentication error: {e}")
@@ -1254,18 +1360,18 @@ Puedes preguntarme:
         user_memory = self._get_user_memory(user_id)
         stats = user_memory.get_statistics()
         
-        message = "📊 *Estadísticas del Sistema*\n\n"
+        message = "📊 Estadísticas del Sistema\n\n"
         message += f"📈 Total de snapshots: `{stats['total_snapshots']}`\n"
         message += f"🔔 Total de cambios detectados: `{stats['total_changes']}`\n"
         message += f"🕐 Última verificación: `{stats['last_check'] or 'Nunca'}`\n"
         message += f"📅 Primer snapshot: `{stats['first_snapshot'] or 'N/A'}`\n"
         
         if stats['total_changes'] > 0:
-            message += "\n*Últimos 5 cambios:*\n"
+            message += "\nÚltimos 5 cambios:\n"
             recent = user_memory.get_recent_changes(5)
             message += self._format_changes_message(recent)
         
-        await update.message.reply_text(message, parse_mode='Markdown')
+        await update.message.reply_text(message)
         
     def _format_grades_message(self, grades: dict) -> str:
         """
@@ -1277,7 +1383,7 @@ Puedes preguntarme:
         Returns:
             Mensaje formateado en Markdown.
         """
-        message = "📚 *CALIFICACIONES*\n\n"
+        message = "📚 CALIFICACIONES\n\n"
         
         # Información del alumno
         if 'alumno' in grades:
@@ -1610,18 +1716,18 @@ Puedes preguntarme:
                 registration['step'] = 'password'
                 
                 message = """
-✅ *Matrícula recibida*
+✅ Matrícula recibida
 
 Ahora envíame tu contraseña del Sistema UPQ.
 
-🔒 *Seguridad:*
+🔒 Seguridad:
 • Tu contraseña se guarda de forma segura
 • Solo tú puedes acceder a ella
 • Puedes eliminarla con /logout
 
 📝 Envía tu contraseña:
 """
-                await update.message.reply_text(message, parse_mode='Markdown')
+                await update.message.reply_text(message)
                 return
                 
             elif registration['step'] == 'password':
@@ -1642,14 +1748,14 @@ Tus credenciales han sido guardadas de forma segura.
 
 Ya puedes usar todos los comandos del bot o simplemente preguntarme:
 
-📚 *Comandos principales:*
+📚 Comandos principales:
 • /kardex - Ver kardex completo
 • /perfil - Ver tu perfil
 • /horario - Ver horario de clases
 • /servicio - Ver servicio social
 • /estancias - Ver estancias
 
-💬 *O pregunta directamente:*
+💬 O pregunta directamente:
 • "¿Cuál es mi promedio?"
 • "Muéstrame mi horario"
 • "¿Tengo materias atrasadas?"
@@ -1657,20 +1763,20 @@ Ya puedes usar todos los comandos del bot o simplemente preguntarme:
 
 ¡Intenta preguntarme cualquier cosa! 😊
 """
-                await update.message.reply_text(message, parse_mode='Markdown')
+                await update.message.reply_text(message)
                 return
         
         # ========== VERIFICAR QUE EL USUARIO TIENE CREDENCIALES ==========
         
         if not self.credentials_manager.has_credentials(user_id):
             message = """
-⚠️ *No tienes credenciales configuradas*
+⚠️ No tienes credenciales configuradas
 
 Para usar el bot, primero necesitas configurar tus credenciales.
 
 Usa /start para comenzar el proceso de registro.
 """
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await update.message.reply_text(message)
             return
         
         # ========== PROCESAMIENTO NORMAL DE MENSAJES ==========
@@ -1848,24 +1954,24 @@ Usa /start para comenzar el proceso de registro.
             response = (
                 "🤔 No estoy seguro de qué necesitas.\n\n"
                 "Puedes preguntarme cosas como:\n\n"
-                "� *Sobre tu información académica:*\n"
+                "� Sobre tu información académica:\n"
                 "• \"Muéstrame mi perfil\"\n"
                 "• \"¿Cuál es mi kardex?\"\n"
                 "• \"¿Cuál es mi horario?\"\n"
                 "• \"¿Cuál es mi promedio?\"\n\n"
-                "🎓 *Sobre tu avance:*\n"
+                "🎓 Sobre tu avance:\n"
                 "• \"¿Tengo materias atrasadas?\"\n"
                 "• \"¿Cuántos créditos llevo?\"\n"
                 "• \"¿Puedo hacer servicio social?\"\n\n"
-                "💼 *Sobre estancias:*\n"
+                "💼 Sobre estancias:\n"
                 "• \"¿Cuándo termina mi estancia?\"\n"
                 "• \"¿Dónde estoy haciendo mi estancia?\"\n\n"
-                "� *Sobre pagos:*\n"
+                "� Sobre pagos:\n"
                 "• \"¿Cuánto debo?\"\n"
                 "• \"Muéstrame mis pagos\"\n\n"
                 "O usa /help para ver todos los comandos disponibles"
             )
-            await update.message.reply_text(response, parse_mode='Markdown')
+            await update.message.reply_text(response)
     
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Maneja errores globales."""

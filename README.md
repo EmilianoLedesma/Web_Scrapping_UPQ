@@ -362,46 +362,6 @@ def detect_changes(
     pass
 ```
 
-### Estándares de Calidad
-
-- 📏 **Guía de Estilo**: Cumplimiento con PEP 8
-- 🔍 **Type Checking**: Análisis estático con mypy
-- 📝 **Documentación**: Docstrings completos
-- ✅ **Testing**: Cobertura mínima del 80%
-- 🎨 **Formateo**: Uso de black para consistencia
-
----
-
-## 🗺️ Roadmap
-
-### Funcionalidades Planificadas
-
-#### Fase 1: Mejoras Inmediatas
-- [ ] 🔔 **Notificaciones en Tiempo Real**: Alertas automáticas de Telegram en cambios de calificaciones
-- [ ] 👥 **Soporte Multi-Cuenta**: Gestionar múltiples cuentas de estudiantes desde una interfaz
-- [ ] 📊 **Dashboard Web**: Panel de visualización con Flask y gráficos interactivos
-
-#### Fase 2: Análisis y Reportes
-- [ ] 📈 **Motor de Análisis**: Análisis de tendencias de calificaciones y modelado predictivo
-- [ ] 🧮 **Calculadora de Promedio**: Cálculo automático de promedio ponderado
-- [ ] 📄 **Formatos de Exportación**: Reportes PDF con plantillas personalizables
-- [ ] 📧 **Integración con Email**: Notificaciones configurables por correo electrónico
-
-#### Fase 3: Plataforma Completa
-- [ ] 📱 **Aplicación Móvil**: App multiplataforma con React Native
-- [ ] 🌐 **API Gateway**: API RESTful para integraciones de terceros
-- [ ] 🗄️ **Backend de Base de Datos**: PostgreSQL/MongoDB para almacenamiento escalable
-- [ ] 🔄 **Sistema de Caché**: Redis para optimización de consultas
-
-### Optimizaciones de Rendimiento
-
-- [ ] ⚡ Requests HTTP asíncronos para consultas paralelas
-- [ ] 💨 Capa de caché para datos frecuentemente accedidos
-- [ ] 🚦 Rate limiting y pooling de requests
-- [ ] ⏰ Scheduling de trabajos en background con Celery
-
----
-
 ## 📜 Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
