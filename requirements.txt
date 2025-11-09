@@ -1,0 +1,17 @@
+# HTTP Requests
+requests==2.31.0
+
+# HTML Parsing
+beautifulsoup4==4.12.3
+# lxml==5.1.0  # Opcional - requiere Visual C++ Build Tools en Windows
+# Por defecto usa html.parser que viene incluido con Python
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Telegram Bot
+python-telegram-bot>=22.5
+
+# Testing (opcional)
+pytest==7.4.3
+pytest-cov==4.1.0

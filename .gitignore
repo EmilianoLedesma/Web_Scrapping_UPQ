@@ -1,0 +1,86 @@
+# Environment Variables
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# Testing
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.claude/
+
+# Debug Files (HTML responses from scraping)
+debug_*.html
+debug_*.py
+
+# Data Storage
+storage/grades_history.json
+*.json.bak
+
+# Reports and Exploration Files
+*_report.json
+exploracion_*.json
+exploration_*.json
+desempeno_*.json
+
+# Documentation (working files, not for repo)
+CONTEXT.md
+EndpointsExplorables.md
+EXPLORACION_SII.md
+RESUMEN_COMPLETO_SII.md
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Secrets
+*.key
+*.pem
+*.p12
+secrets/
