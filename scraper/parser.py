@@ -418,3 +418,706 @@ class UPQGradesParser:
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(self.html)
         print(f"💾 HTML guardado para debugging en: {filepath}")
+
+
+def parse_kardex(html: str) -> List[Dict[str, str]]:
+    """
+    Parsea el kardex académico desde el HTML de la página de calificaciones.
+    
+    El kardex contiene el historial completo de materias cursadas con:
+    número, clave, nombre, cuatrimestre, calificación y tipo de evaluación.
+    
+    Args:
+        html: HTML de la página de calificaciones con kardex
+        
+    Returns:
+        Lista de diccionarios con datos de cada materia del kardex
+        
+    Ejemplo de retorno:
+        [
+            {
+                'numero': '1',
+                'clave': '',
+                'materia': 'ÁLGEBRA LINEAL',
+                'cuatrimestre': '1',
+                'calificacion': '8',
+                'tipo_evaluacion': 'CURSO ORDINARIO'
+            },
+            ...
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar el div o sección que contiene "Kardex"
+    kardex_section = None
+    
+    # Buscar en los tabs
+    for div in soup.find_all('div'):
+        title_attr = div.get('title', '')
+        if 'kardex' in title_attr.lower():
+            kardex_section = div
+            break
+    
+    if not kardex_section:
+        print("⚠️  No se encontró la sección de Kardex en el HTML")
+        return []
+    
+    # Encontrar la tabla dentro de la sección kardex
+    table = kardex_section.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla en la sección de Kardex")
+        return []
+    
+    materias = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        if len(cells) >= 6:
+            materia = {
+                'numero': cells[0].text.strip(),
+                'clave': cells[1].text.strip(),
+                'materia': cells[2].text.strip(),
+                'cuatrimestre': cells[3].text.strip(),
+                'calificacion': cells[4].text.strip(),
+                'tipo_evaluacion': cells[5].text.strip()
+            }
+            materias.append(materia)
+    
+    print(f"✅ Kardex parseado: {len(materias)} materias encontradas")
+    return materias
+
+
+def parse_student_profile(html: str) -> Dict[str, str]:
+    """
+    Parsea el perfil del estudiante desde el HTML del home.
+    
+    Extrae todos los datos del perfil: nombre, matrícula, carrera, promedio,
+    créditos, nivel de inglés, tutor, etc.
+    
+    Args:
+        html: HTML de la página home
+        
+    Returns:
+        Diccionario con datos del perfil
+        
+    Ejemplo de retorno:
+        {
+            'nombre': 'EMILIANO LEDESMA LEDESMA',
+            'matricula': '123046244',
+            'carrera': 'SISTEMAS',
+            'generacion': '20',
+            'grupo': 'S204',
+            'ultimo_cuatrimestre': '7',
+            'promedio_general': '9.07',
+            'materias_aprobadas': '45',
+            'creditos': '258/360',
+            'materias_no_acreditadas': '0',
+            'nivel_ingles': '9',
+            'estatus': 'ACTIVO',
+            'nss': '49160134976',
+            'tutor': 'ALVARADO SALAYANDIA CECILIA',
+            'email_tutor': 'cecilia.alvarado@upq.edu.mx',
+            'foto_url': '/uploads/fotos/alumnos/20/123046244.jpg'
+        }
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    perfil = {}
+    
+    # Buscar todos los elementos <strong> que contienen etiquetas de campos
+    for strong in soup.find_all('strong'):
+        campo_text = strong.text.strip()
+        
+        # Remover : y espacios, convertir a minúsculas y _ para uniformidad
+        campo = campo_text.replace(':', '').strip().lower().replace(' ', '_')
+        
+        # Obtener el valor que está después del <strong>
+        valor = ''
+        next_sibling = strong.next_sibling
+        
+        if next_sibling:
+            if isinstance(next_sibling, str):
+                valor = next_sibling.strip()
+            else:
+                valor = next_sibling.text.strip() if hasattr(next_sibling, 'text') else ''
+        
+        if valor:
+            perfil[campo] = valor
+    
+    # Extraer foto si existe
+    foto_img = soup.find('img', src=re.compile(r'/uploads/fotos/alumnos/'))
+    if foto_img:
+        perfil['foto_url'] = foto_img['src']
+    
+    # Extraer nombre de usuario del header
+    username_div = soup.find('div', class_='username')
+    if username_div:
+        username_span = username_div.find('span', style=re.compile(r'font-weight:bold'))
+        if username_span:
+            perfil['nombre_usuario'] = username_span.text.strip()
+    
+    print(f"✅ Perfil parseado: {len(perfil)} campos encontrados")
+    return perfil
+
+
+def parse_carga_academica(html: str) -> Dict:
+    """
+    Parsea la carga académica actual del estudiante.
+    
+    Extrae las materias del cuatrimestre en curso con información de:
+    aula, grupo, profesor, calificaciones parciales y finales.
+    
+    Args:
+        html: HTML de la página de carga académica
+        
+    Returns:
+        Diccionario con periodo y lista de materias
+        
+    Ejemplo de retorno:
+        {
+            'periodo': 'CARGA ACADÉMICA: SEPTIEMBRE-DICIEMBRE 2025',
+            'materias': [
+                {
+                    'numero': '1',
+                    'clave': '',
+                    'materia': 'LIDERAZGO DE EQUIPOS DE ALTO DESEMPEÑO',
+                    'aula': 'C104',
+                    'grupo': 'S204-7',
+                    'profesor': 'RAMIREZ RESENDIZ ADRIANA KARINA',
+                    'parciales': {'p1': '9.35', 'p2': '', 'p3': ''},
+                    'finales': {'pf1': '', 'pf2': '', 'pf3': ''},
+                    'calificacion_final': ''
+                },
+                ...
+            ]
+        }
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Extraer título del periodo
+    titulo_h4 = soup.find('h4', class_='title')
+    periodo = titulo_h4.text.strip() if titulo_h4 else "Periodo actual"
+    
+    # Extraer tabla
+    table = soup.find('table', id='tblMaterias')
+    if not table:
+        return {'periodo': periodo, 'materias': []}
+    
+    materias = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        if len(cells) >= 13:
+            materia = {
+                'numero': cells[0].text.strip(),
+                'clave': cells[1].text.strip(),
+                'materia': cells[2].text.strip(),
+                'aula': cells[3].text.strip(),
+                'grupo': cells[4].text.strip(),
+                'profesor': cells[5].text.strip(),
+                'parciales': {
+                    'p1': cells[6].text.strip(),
+                    'p2': cells[7].text.strip(),
+                    'p3': cells[8].text.strip(),
+                },
+                'finales': {
+                    'pf1': cells[9].text.strip(),
+                    'pf2': cells[10].text.strip(),
+                    'pf3': cells[11].text.strip(),
+                },
+                'calificacion_final': cells[12].text.strip()
+            }
+            materias.append(materia)
+    
+    print(f"✅ Carga académica parseada: {len(materias)} materias encontradas")
+    return {
+        'periodo': periodo,
+        'materias': materias
+    }
+
+
+def parse_historial_academico(html: str) -> List[Dict]:
+    """
+    Parsea el historial académico completo del estudiante.
+    
+    Extrae todas las materias cursadas con fecha, ciclo, créditos,
+    calificación, tipo de evaluación y estado.
+    
+    Args:
+        html: HTML de la página de historial académico
+        
+    Returns:
+        Lista de diccionarios con datos de cada materia
+        
+    Ejemplo de retorno:
+        [
+            {
+                'numero': '1',
+                'fecha': '15/08/2025',
+                'ciclo': 'MAYO - AGOSTO 2025',
+                'clave': '',
+                'materia': 'ADMINISTRACIÓN DE BASE DE DATOS',
+                'creditos': '7',
+                'calificacion': '9',
+                'tipo_evaluacion': 'CURSO ORDINARIO',
+                'tipo_evaluacion_codigo': '1',
+                'estado': ''
+            },
+            ...
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la tabla principal del historial
+    table = soup.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de historial académico")
+        return []
+    
+    historial = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        if len(cells) >= 9:
+            # Extraer tipo de evaluación del atributo title
+            tipo_eval_td = cells[7]
+            tipo_eval_titulo = tipo_eval_td.get('title', tipo_eval_td.text.strip())
+            tipo_eval_codigo = tipo_eval_td.text.strip()
+            
+            materia = {
+                'numero': cells[0].text.strip(),
+                'fecha': cells[1].text.strip(),
+                'ciclo': cells[2].text.strip(),
+                'clave': cells[3].text.strip(),
+                'materia': cells[4].text.strip(),
+                'creditos': cells[5].text.strip(),
+                'calificacion': cells[6].text.strip(),
+                'tipo_evaluacion': tipo_eval_titulo,
+                'tipo_evaluacion_codigo': tipo_eval_codigo,
+                'estado': cells[8].text.strip()
+            }
+            historial.append(materia)
+    
+    print(f"✅ Historial académico parseado: {len(historial)} registros encontrados")
+    return historial
+
+
+def parse_mapa_curricular(html: str) -> Dict[str, List[Dict]]:
+    """
+    Parsea el mapa curricular completo de la carrera.
+    
+    Extrae el plan de estudios completo organizado por ciclos de formación
+    y cuatrimestres, mostrando todas las materias con calificaciones,
+    tipo de evaluación e intentos.
+    
+    Args:
+        html: HTML de la página de información general del alumno
+        
+    Returns:
+        Diccionario con cuatrimestres como keys y listas de materias como values
+        
+    Ejemplo de retorno:
+        {
+            '1er. Cuatrimestre': [
+                {
+                    'numero': '1',
+                    'materia': 'INGLÉS I',
+                    'calificacion': '10',
+                    'tipo_evaluacion': '11',
+                    'intentos': '1',
+                    'acreditada': True
+                },
+                ...
+            ],
+            '2do. Cuatrimestre': [...],
+            ...
+        }
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    mapa = {}
+    
+    # Encontrar todos los fieldsets (ciclos de formación)
+    for fieldset in soup.find_all('fieldset'):
+        legend = fieldset.find('legend')
+        if not legend:
+            continue
+            
+        ciclo_nombre = legend.text.strip()
+        
+        # Encontrar todas las tablas de cuatrimestres dentro del ciclo
+        for table in fieldset.find_all('table', class_='grid'):
+            # Obtener el nombre del cuatrimestre del header
+            header = table.find('thead')
+            if not header:
+                continue
+                
+            th = header.find('th', attrs={'colspan': True})
+            if not th:
+                continue
+                
+            cuatrimestre = th.text.strip()
+            
+            materias = []
+            for row in table.find_all('tr', class_=['row0', 'row1']):
+                # Verificar si la materia está acreditada
+                acreditada = 'acreditado' in row.get('class', [])
+                
+                cells = row.find_all('td')
+                if len(cells) >= 5:
+                    materia = {
+                        'numero': cells[0].text.strip(),
+                        'materia': cells[1].text.strip(),
+                        'calificacion': cells[2].text.strip(),
+                        'tipo_evaluacion': cells[3].text.strip(),
+                        'intentos': cells[4].text.strip(),
+                        'acreditada': acreditada
+                    }
+                    materias.append(materia)
+            
+            if materias:
+                mapa[cuatrimestre] = materias
+    
+    print(f"✅ Mapa curricular parseado: {len(mapa)} cuatrimestres encontrados")
+    return mapa
+
+
+def parse_horario(html: str) -> List[Dict]:
+    """
+    Parsea el horario semanal de clases.
+    
+    Extrae el horario completo con día, horas, aula, materia y profesor.
+    
+    Args:
+        html: HTML de la página de horario de materias
+        
+    Returns:
+        Lista de diccionarios con datos de cada clase
+        
+    Ejemplo de retorno:
+        [
+            {
+                'dia': 'LUNES',
+                'hora_inicio': '08:00:00',
+                'hora_fin': '10:00:00',
+                'aula': 'C104',
+                'materia': 'PROGRAMACIÓN WEB',
+                'profesor': 'MOYA MOYA JOSE JAVIER'
+            },
+            ...
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la tabla del horario
+    table = soup.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de horario")
+        return []
+    
+    horario = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        if len(cells) >= 6:
+            clase = {
+                'dia': cells[0].text.strip(),
+                'hora_inicio': cells[1].text.strip(),
+                'hora_fin': cells[2].text.strip(),
+                'aula': cells[3].text.strip(),
+                'materia': cells[4].text.strip(),
+                'profesor': cells[5].text.strip()
+            }
+            horario.append(clase)
+    
+    print(f"✅ Horario parseado: {len(horario)} clases encontradas")
+    return horario
+
+
+def parse_boleta(html: str) -> Dict[str, Any]:
+    """
+    Parsea la boleta de calificaciones.
+    
+    Extrae calificaciones organizadas por cuatrimestre con promedios.
+    
+    Args:
+        html: HTML de la página de boleta de calificaciones
+        
+    Returns:
+        Diccionario con cuatrimestres y sus materias
+        
+    Ejemplo de retorno:
+        {
+            'cuatrimestres': [
+                {
+                    'numero': '7',
+                    'nombre': 'SÉPTIMO CUATRIMESTRE',
+                    'promedio': '9.14',
+                    'creditos': '34',
+                    'materias': [
+                        {
+                            'materia': 'BASE DE DATOS',
+                            'calificacion': '8',
+                            'creditos': '8'
+                        },
+                        ...
+                    ]
+                },
+                ...
+            ]
+        }
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    cuatrimestres = []
+    
+    # Buscar todas las tablas de cuatrimestres
+    for table in soup.find_all('table', class_='grid'):
+        # Buscar el header del cuatrimestre
+        header = table.find('thead')
+        if not header:
+            continue
+            
+        th = header.find('th', attrs={'colspan': True})
+        if not th:
+            continue
+            
+        nombre_cuatri = th.text.strip()
+        
+        # Extraer número de cuatrimestre si está en el nombre
+        numero_match = re.search(r'(\d+)', nombre_cuatri)
+        numero = numero_match.group(1) if numero_match else '0'
+        
+        materias = []
+        promedio = ''
+        creditos = ''
+        
+        for row in table.find_all('tr', class_=['row0', 'row1']):
+            cells = row.find_all('td')
+            if len(cells) >= 3:
+                # Verificar si es la fila de promedio
+                if 'promedio' in cells[0].text.lower():
+                    promedio = cells[1].text.strip()
+                    creditos = cells[2].text.strip() if len(cells) > 2 else ''
+                else:
+                    materia = {
+                        'materia': cells[0].text.strip(),
+                        'calificacion': cells[1].text.strip(),
+                        'creditos': cells[2].text.strip() if len(cells) > 2 else ''
+                    }
+                    materias.append(materia)
+        
+        if materias:
+            cuatrimestres.append({
+                'numero': numero,
+                'nombre': nombre_cuatri,
+                'promedio': promedio,
+                'creditos': creditos,
+                'materias': materias
+            })
+    
+    print(f"✅ Boleta parseada: {len(cuatrimestres)} cuatrimestres encontrados")
+    return {'cuatrimestres': cuatrimestres}
+
+
+def parse_pagos(html: str) -> List[Dict]:
+    """
+    Parsea el historial de pagos.
+    
+    Extrae todos los pagos realizados con fecha, folio, concepto y monto.
+    
+    Args:
+        html: HTML de la página de pagos
+        
+    Returns:
+        Lista de diccionarios con datos de cada pago
+        
+    Ejemplo de retorno:
+        [
+            {
+                'fecha': '15/08/2025',
+                'folio': 'F123456',
+                'concepto': 'COLEGIATURA SEPTIEMBRE',
+                'monto': '$2,500.00',
+                'forma_pago': 'TRANSFERENCIA'
+            },
+            ...
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la tabla de pagos
+    table = soup.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de pagos")
+        return []
+    
+    pagos = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        if len(cells) >= 5:
+            pago = {
+                'fecha': cells[0].text.strip(),
+                'folio': cells[1].text.strip(),
+                'concepto': cells[2].text.strip(),
+                'monto': cells[3].text.strip(),
+                'forma_pago': cells[4].text.strip()
+            }
+            pagos.append(pago)
+    
+    print(f"✅ Pagos parseados: {len(pagos)} registros encontrados")
+    return pagos
+
+
+def parse_adeudos(html: str) -> List[Dict]:
+    """
+    Parsea los adeudos pendientes.
+    
+    Extrae adeudos con concepto, monto y fecha límite.
+    
+    Args:
+        html: HTML de la página de adeudos
+        
+    Returns:
+        Lista de diccionarios con datos de cada adeudo
+        
+    Ejemplo de retorno:
+        [
+            {
+                'concepto': 'COLEGIATURA OCTUBRE',
+                'monto': '$2,500.00',
+                'fecha_limite': '31/10/2025',
+                'estado': 'PENDIENTE'
+            },
+            ...
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la tabla de adeudos
+    table = soup.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de adeudos")
+        return []
+    
+    adeudos = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        
+        # Verificar si es el mensaje de "No se encontraron registros"
+        if len(cells) == 1 or 'no se encontraron' in cells[0].text.lower():
+            continue
+            
+        if len(cells) >= 3:
+            adeudo = {
+                'concepto': cells[0].text.strip(),
+                'monto': cells[1].text.strip(),
+                'fecha_limite': cells[2].text.strip() if len(cells) > 2 else '',
+                'estado': cells[3].text.strip() if len(cells) > 3 else 'PENDIENTE'
+            }
+            adeudos.append(adeudo)
+    
+    print(f"✅ Adeudos parseados: {len(adeudos)} registros encontrados")
+    return adeudos
+
+
+def parse_documentos(html: str) -> List[Dict]:
+    """
+    Parsea los documentos en proceso.
+    
+    Extrae documentos solicitados con folio, tipo, fecha y estado.
+    
+    Args:
+        html: HTML de la página de documentos en proceso
+        
+    Returns:
+        Lista de diccionarios con datos de cada documento
+        
+    Ejemplo de retorno:
+        [
+            {
+                'folio': 'DOC-12345',
+                'documento': 'CONSTANCIA DE ESTUDIOS',
+                'fecha_solicitud': '01/09/2025',
+                'estado': 'EN PROCESO',
+                'fecha_entrega': '05/09/2025'
+            },
+            ...
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la tabla de documentos
+    table = soup.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de documentos")
+        return []
+    
+    documentos = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        
+        # Verificar si es el mensaje de "No se encontraron registros"
+        if len(cells) == 1 or 'no se encontraron' in cells[0].text.lower():
+            continue
+            
+        if len(cells) >= 4:
+            documento = {
+                'folio': cells[0].text.strip(),
+                'documento': cells[1].text.strip(),
+                'fecha_solicitud': cells[2].text.strip(),
+                'estado': cells[3].text.strip(),
+                'fecha_entrega': cells[4].text.strip() if len(cells) > 4 else ''
+            }
+            documentos.append(documento)
+    
+    print(f"✅ Documentos parseados: {len(documentos)} registros encontrados")
+    return documentos
+
+
+def parse_seguimiento_cuatrimestral(html: str) -> List[Dict]:
+    """
+    Parsea el seguimiento cuatrimestral (calendario académico).
+    
+    Extrae información de progreso por cuatrimestre con promedios y créditos.
+    
+    Args:
+        html: HTML de la página de seguimiento cuatrimestral
+        
+    Returns:
+        Lista de diccionarios con datos de cada cuatrimestre
+        
+    Ejemplo de retorno:
+        [
+            {
+                'cuatrimestre': '1',
+                'nombre': 'PRIMER CUATRIMESTRE',
+                'periodo': 'SEPTIEMBRE - DICIEMBRE 2020',
+                'promedio': '9.14',
+                'creditos': '48',
+                'creditos_acumulados': '48',
+                'estado': 'CONCLUIDO'
+            },
+            ...
+        ]
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Buscar la tabla de seguimiento
+    table = soup.find('table', class_='grid')
+    if not table:
+        print("⚠️  No se encontró tabla de seguimiento cuatrimestral")
+        return []
+    
+    seguimiento = []
+    for row in table.find_all('tr', class_=['row0', 'row1']):
+        cells = row.find_all('td')
+        if len(cells) >= 6:
+            cuatri = {
+                'cuatrimestre': cells[0].text.strip(),
+                'nombre': cells[1].text.strip(),
+                'periodo': cells[2].text.strip(),
+                'promedio': cells[3].text.strip(),
+                'creditos': cells[4].text.strip(),
+                'creditos_acumulados': cells[5].text.strip(),
+                'estado': cells[6].text.strip() if len(cells) > 6 else ''
+            }
+            seguimiento.append(cuatri)
+    
+    print(f"✅ Seguimiento parseado: {len(seguimiento)} cuatrimestres encontrados")
+    return seguimiento
+

@@ -3,11 +3,27 @@
 Bot de Telegram para Sistema de Scraping de Calificaciones UPQ.
 
 Comandos disponibles:
-- /start - Inicia el bot
-- /grades - Obtiene calificaciones actuales
-- /check - Verifica nuevas calificaciones
-- /stats - Muestra estadísticas
-- /help - Muestra ayuda
+- /start - Registrar credenciales
+- /logout - Eliminar credenciales
+- /grades - Calificaciones actuales
+- /check - Verificar cambios
+- /stats - Estadísticas
+- /info - Información del perfil
+- /promedio - Promedio general
+- /creditos - Créditos y avance
+- /perfil - Perfil personal
+- /horario - Horario de clases
+- /kardex - Kardex académico
+- /boleta - Boleta de calificaciones
+- /historial - Historial de promedios
+- /materias - Materias atrasadas
+- /estancias - Estancias profesionales
+- /servicio - Servicio social
+- /pagos - Historial de pagos
+- /adeudos - Adeudos pendientes
+- /documentos - Documentos disponibles
+- /calendario - Calendario académico
+- /help - Ayuda
 """
 
 import os
@@ -258,40 +274,42 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
         help_text = """
 📚 *Ayuda - Bot de Calificaciones UPQ*
 
-*Comandos Principales:*
+*📊 Comandos Principales:*
+/grades - Calificaciones actuales
+/check - Detectar cambios
+/stats - Estadísticas
 
-/grades - Obtiene tus calificaciones actuales
-/check - Detecta cambios en calificaciones
-/stats - Estadísticas del historial
+*👤 Información Personal:*
+/info - Información del perfil
+/promedio - Promedio general
+/creditos - Créditos y avance
+/perfil - Perfil personal completo
 
-*Información Académica:*
+*📚 Académico:*
+/horario - Horario de clases
+/kardex - Kardex académico
+/boleta - Boleta de calificaciones
+/historial - Promedios por periodo
+/materias - Materias atrasadas
 
-/info - Tu información personal completa
-/promedio - Tu promedio general actual
-/creditos - Créditos aprobados y avance
-/historial - Promedios por cuatrimestre
-/materias - Analiza materias atrasadas
+*💼 Profesional:*
+/estancias - Estancias profesionales
+/servicio - Servicio social
 
-*Estancias y Talleres:*
+*💰 Administrativo:*
+/pagos - Historial de pagos
+/adeudos - Adeudos pendientes
 
-/estancias - Información de estancias profesionales
+*� Documentos y Calendario:*
+/documentos - Documentos disponibles
+/calendario - Calendario académico
 
-*Otros:*
+*⚙️ Sistema:*
+/start - Registrar credenciales
+/logout - Eliminar credenciales
+/help - Este mensaje
 
-/start - Inicia el bot
-/help - Muestra este mensaje
-
-*💬 Lenguaje Natural:*
-También puedes hacer preguntas como:
-• "¿Cuál es mi promedio?"
-• "¿Tengo materias atrasadas?"
-• "¿Cuándo terminan mis estancias?"
-• "¿Cuántos créditos llevo?"
-
-*Privacidad:*
-• El bot solo accede a tu información académica
-• No comparte datos con terceros
-• Las credenciales están seguras en el servidor
+*💬 Tip:* También puedes usar lenguaje natural para hacer preguntas.
 """
         await update.message.reply_text(help_text, parse_mode='Markdown')
     
@@ -559,6 +577,412 @@ También puedes hacer preguntas como:
         except Exception as e:
             self.logger.error(f"Error en historial_command: {e}")
             await update.message.reply_text("❌ Error al obtener historial")
+    
+    async def horario_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra el horario de clases."""
+        user_id = update.effective_user.id
+        await update.message.reply_text("📅 Consultando tu horario...")
+        
+        try:
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
+                if not session.login():
+                    await update.message.reply_text("❌ Error de autenticación")
+                    return
+                
+                html = session.get_horario()
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                message = "📅 *Horario de Clases*\n\n"
+                tables = soup.find_all('table')
+                
+                if tables:
+                    for table in tables[:1]:  # Primera tabla
+                        rows = table.find_all('tr')
+                        for row in rows:
+                            cols = row.find_all(['th', 'td'])
+                            if cols:
+                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                                message += f"`{row_text}`\n"
+                    await update.message.reply_text(message, parse_mode='Markdown')
+                else:
+                    await update.message.reply_text("📝 No se encontró información de horario")
+                    
+        except Exception as e:
+            self.logger.error(f"Error en horario_command: {e}")
+            await update.message.reply_text("❌ Error al obtener horario")
+    
+    async def kardex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra el kardex académico del usuario"""
+        user_id = update.effective_user.id
+        await update.message.reply_text("📚 Obteniendo tu kardex académico...")
+        
+        try:
+            # Obtener credenciales
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text(
+                    "❌ No estás autenticado. Usa /login para iniciar sesión."
+                )
+                return
+            
+            # Importar parser
+            from scraper.parser import parse_kardex
+            from scraper.fetcher import GradesFetcher
+            from scraper.auth import UPQAuthenticator
+            
+            # Autenticar y obtener kardex
+            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
+            authenticator.login()
+            
+            fetcher = GradesFetcher(authenticator)
+            kardex_html = fetcher.fetch_kardex()
+            
+            # Parsear kardex
+            materias = parse_kardex(kardex_html)
+            
+            if not materias:
+                await update.message.reply_text("❌ No se encontró información del kardex.")
+                return
+            
+            # Formatear respuesta
+            mensaje = "� *KARDEX ACADÉMICO*\n\n"
+            
+            cuatrimestre_actual = None
+            for materia in materias:
+                cuatri = materia['cuatrimestre']
+                
+                # Encabezado de cuatrimestre
+                if cuatri != cuatrimestre_actual:
+                    if cuatrimestre_actual is not None:
+                        mensaje += "\n"
+                    mensaje += f"*━━ Cuatrimestre {cuatri} ━━*\n"
+                    cuatrimestre_actual = cuatri
+                
+                # Información de materia
+                cal = materia['calificacion']
+                try:
+                    cal_num = float(cal)
+                    emoji_cal = "✅" if cal_num >= 7 else "❌"
+                except:
+                    emoji_cal = "📝"
+                
+                mensaje += f"{emoji_cal} {materia['materia']}: *{cal}*\n"
+                mensaje += f"   └ {materia['tipo_evaluacion']}\n"
+            
+            mensaje += f"\n📊 Total: {len(materias)} materias cursadas"
+            
+            await update.message.reply_text(mensaje, parse_mode='Markdown')
+            
+        except Exception as e:
+            logger.error(f"Error en kardex_command: {e}")
+            await update.message.reply_text(f"❌ Error al obtener kardex: {str(e)}")
+    
+    async def boleta_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra la boleta de calificaciones."""
+        user_id = update.effective_user.id
+        await update.message.reply_text("📋 Consultando tu boleta...")
+        
+        try:
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
+                if not session.login():
+                    await update.message.reply_text("❌ Error de autenticación")
+                    return
+                
+                html = session.get_boleta()
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                message = "📋 *Boleta de Calificaciones*\n\n"
+                tables = soup.find_all('table')
+                
+                if tables:
+                    for table in tables[:1]:
+                        rows = table.find_all('tr')
+                        for row in rows[:20]:  # Limitar a 20 filas
+                            cols = row.find_all(['th', 'td'])
+                            if cols:
+                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                                message += f"`{row_text}`\n"
+                    await update.message.reply_text(message, parse_mode='Markdown')
+                else:
+                    await update.message.reply_text("📝 No se encontró boleta")
+                    
+        except Exception as e:
+            self.logger.error(f"Error en boleta_command: {e}")
+            await update.message.reply_text("❌ Error al obtener boleta")
+    
+    async def servicio_social_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Informa que el servicio social no está disponible como endpoint separado.
+        Redirige al comando de historial completo.
+        """
+        user_id = update.effective_user.id
+        
+        message = (
+            "ℹ️ *Servicio Social*\n\n"
+            "El endpoint de servicio social no está disponible como sección separada.\n\n"
+            "📊 Para ver información de tu **servicio social**, usa:\n"
+            "👉 /historial\n\n"
+            "Este comando te mostrará tu información completa, incluyendo:\n"
+            "• Estado del servicio social\n"
+            "• Horas completadas\n"
+            "• Dependencia asignada\n"
+            "• Y toda tu trayectoria académica"
+        )
+        
+        await update.message.reply_text(message, parse_mode='Markdown')
+    
+    async def perfil_personal_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra el perfil personal del usuario"""
+        user_id = update.effective_user.id
+        await update.message.reply_text("👤 Obteniendo tu perfil personal...")
+        
+        try:
+            # Obtener credenciales
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text(
+                    "❌ No estás autenticado. Usa /login para iniciar sesión."
+                )
+                return
+            
+            # Importar parser
+            from scraper.parser import parse_student_profile
+            from scraper.fetcher import GradesFetcher
+            from scraper.auth import UPQAuthenticator
+            
+            # Autenticar y obtener perfil
+            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
+            authenticator.login()
+            
+            fetcher = GradesFetcher(authenticator)
+            perfil_html = fetcher.fetch_perfil()
+            
+            # Parsear perfil
+            perfil = parse_student_profile(perfil_html)
+            
+            if not perfil:
+                await update.message.reply_text("❌ No se encontró información del perfil.")
+                return
+            
+            # Formatear respuesta con manejo de claves alternativas
+            def get_field(key1, key2='', default='N/A'):
+                return perfil.get(key1, perfil.get(key2, default))
+            
+            nombre = get_field('nombre')
+            matricula = get_field('matrícula', 'matricula')
+            carrera = get_field('carrera')
+            generacion = get_field('generación', 'generacion')
+            grupo = get_field('grupo')
+            cuatrimestre = get_field('último_cuatrimestre', 'ultimo_cuatrimestre')
+            promedio = get_field('promedio_general')
+            materias_aprob = get_field('materias_aprobadas')
+            materias_reprob = get_field('materias_no_acreditadas')
+            creditos = get_field('créditos', 'creditos')
+            nivel_ingles = get_field('nivel_inglés', 'nivel_ingles')
+            estatus = get_field('estatus')
+            nss = get_field('nss')
+            tutor = get_field('tutor')
+            email_tutor = get_field('email', 'email_tutor')
+            
+            mensaje = f"""
+👤 *PERFIL ACADÉMICO*
+
+*Datos Personales:*
+├ Nombre: {nombre}
+├ Matrícula: {matricula}
+├ NSS: {nss}
+└ Estatus: {estatus}
+
+*Datos Académicos:*
+├ Carrera: {carrera}
+├ Generación: {generacion}
+├ Grupo: {grupo}
+├ Cuatrimestre: {cuatrimestre}
+└ Promedio: *{promedio}* 📊
+
+*Progreso:*
+├ Materias Aprobadas: {materias_aprob}
+├ Materias Reprobadas: {materias_reprob}
+├ Créditos: {creditos}
+└ Nivel Inglés: {nivel_ingles}
+
+*Tutoría:*
+├ Tutor: {tutor}
+└ Email: {email_tutor}
+"""
+            
+            await update.message.reply_text(mensaje, parse_mode='Markdown')
+            
+        except Exception as e:
+            logger.error(f"Error en perfil_personal_command: {e}")
+            await update.message.reply_text(f"❌ Error al obtener perfil: {str(e)}")
+    
+    async def pagos_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra el historial de pagos."""
+        user_id = update.effective_user.id
+        await update.message.reply_text("💰 Consultando tu historial de pagos...")
+        
+        try:
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
+                if not session.login():
+                    await update.message.reply_text("❌ Error de autenticación")
+                    return
+                
+                html = session.get_pagos()
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                message = "💰 *Historial de Pagos*\n\n"
+                tables = soup.find_all('table')
+                
+                if tables:
+                    for table in tables[:1]:
+                        rows = table.find_all('tr')
+                        for row in rows[:15]:  # Limitar a 15 pagos
+                            cols = row.find_all(['th', 'td'])
+                            if cols:
+                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                                message += f"`{row_text}`\n"
+                    await update.message.reply_text(message, parse_mode='Markdown')
+                else:
+                    await update.message.reply_text("📝 No se encontró historial de pagos")
+                    
+        except Exception as e:
+            self.logger.error(f"Error en pagos_command: {e}")
+            await update.message.reply_text("❌ Error al obtener pagos")
+    
+    async def adeudos_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra los adeudos pendientes."""
+        user_id = update.effective_user.id
+        await update.message.reply_text("⚠️ Consultando adeudos...")
+        
+        try:
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
+                if not session.login():
+                    await update.message.reply_text("❌ Error de autenticación")
+                    return
+                
+                html = session.get_adeudos()
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                message = "⚠️ *Adeudos Pendientes*\n\n"
+                tables = soup.find_all('table')
+                found = False
+                
+                if tables:
+                    for table in tables[:1]:
+                        rows = table.find_all('tr')
+                        for row in rows:
+                            cols = row.find_all(['th', 'td'])
+                            if cols:
+                                found = True
+                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                                message += f"`{row_text}`\n"
+                
+                if found:
+                    await update.message.reply_text(message, parse_mode='Markdown')
+                else:
+                    await update.message.reply_text("✅ No tienes adeudos pendientes")
+                    
+        except Exception as e:
+            self.logger.error(f"Error en adeudos_command: {e}")
+            await update.message.reply_text("❌ Error al obtener adeudos")
+    
+    async def documentos_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra los documentos escolares disponibles."""
+        user_id = update.effective_user.id
+        await update.message.reply_text("📄 Consultando documentos disponibles...")
+        
+        try:
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
+                if not session.login():
+                    await update.message.reply_text("❌ Error de autenticación")
+                    return
+                
+                html = session.get_documentos()
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                message = "📄 *Documentos Escolares*\n\n"
+                documentos = []
+                links = soup.find_all('a')
+                
+                for link in links[:20]:  # Limitar a 20 documentos
+                    text = link.get_text(strip=True)
+                    href = link.get('href', '')
+                    if text and ('pdf' in href.lower() or 'documento' in text.lower() or 'constancia' in text.lower()):
+                        documentos.append(f"📄 {text}")
+                
+                if documentos:
+                    message += "\n".join(documentos)
+                    await update.message.reply_text(message, parse_mode='Markdown')
+                else:
+                    await update.message.reply_text("📝 No se encontraron documentos disponibles")
+                    
+        except Exception as e:
+            self.logger.error(f"Error en documentos_command: {e}")
+            await update.message.reply_text("❌ Error al obtener documentos")
+    
+    async def calendario_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra el calendario académico."""
+        user_id = update.effective_user.id
+        await update.message.reply_text("📆 Consultando calendario académico...")
+        
+        try:
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
+                await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
+                return
+            
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
+                if not session.login():
+                    await update.message.reply_text("❌ Error de autenticación")
+                    return
+                
+                html = session.get_calendario()
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                message = "📆 *Calendario Académico*\n\n"
+                tables = soup.find_all('table')
+                
+                if tables:
+                    for table in tables[:1]:
+                        rows = table.find_all('tr')
+                        for row in rows[:20]:  # Limitar a 20 eventos
+                            cols = row.find_all(['th', 'td'])
+                            if cols:
+                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                                message += f"`{row_text}`\n"
+                    await update.message.reply_text(message, parse_mode='Markdown')
+                else:
+                    await update.message.reply_text("📝 No se encontró calendario académico")
+                    
+        except Exception as e:
+            self.logger.error(f"Error en calendario_command: {e}")
+            await update.message.reply_text("❌ Error al obtener calendario")
         
         
     async def grades_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1296,6 +1720,17 @@ Usa /start para comenzar el proceso de registro.
         self.app.add_handler(CommandHandler("historial", self.historial_command))
         self.app.add_handler(CommandHandler("materias", self.materias_atrasadas_command))
         self.app.add_handler(CommandHandler("estancias", self.estancias_command))
+        
+        # Nuevos handlers de información adicional
+        self.app.add_handler(CommandHandler("horario", self.horario_command))
+        self.app.add_handler(CommandHandler("kardex", self.kardex_command))
+        self.app.add_handler(CommandHandler("boleta", self.boleta_command))
+        self.app.add_handler(CommandHandler("servicio", self.servicio_social_command))
+        self.app.add_handler(CommandHandler("perfil", self.perfil_personal_command))
+        self.app.add_handler(CommandHandler("pagos", self.pagos_command))
+        self.app.add_handler(CommandHandler("adeudos", self.adeudos_command))
+        self.app.add_handler(CommandHandler("documentos", self.documentos_command))
+        self.app.add_handler(CommandHandler("calendario", self.calendario_command))
         
         
         # Handler de mensajes de texto (lenguaje natural)

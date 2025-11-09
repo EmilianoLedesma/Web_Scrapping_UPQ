@@ -12,6 +12,15 @@ Uso:
     python main.py --creditos        # Créditos y avance
     python main.py --estancias       # Estancias profesionales
     python main.py --historial       # Historial de promedios
+    python main.py --horario         # Horario de clases
+    python main.py --kardex          # Kardex académico
+    python main.py --boleta          # Boleta de calificaciones
+    python main.py --servicio        # Servicio social
+    python main.py --perfil          # Perfil personal completo
+    python main.py --pagos           # Historial de pagos
+    python main.py --adeudos         # Adeudos pendientes
+    python main.py --documentos      # Documentos escolares
+    python main.py --calendario      # Calendario académico
 """
 
 import argparse
@@ -505,6 +514,334 @@ def show_historial_promedios(session: UPQScraperSession) -> None:
             return
         
         print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 26 + "📊 HISTORIAL DE PROMEDIOS" + " " * 27 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        for item in historial:
+            print(f"  📅 {item['cuatrimestre']}: {item['promedio']}")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener historial: {e}")
+
+
+def show_horario(session: UPQScraperSession) -> None:
+    """Muestra el horario de clases."""
+    try:
+        print("\n📡 Obteniendo horario de clases...")
+        html = session.get_horario()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 28 + "📅 HORARIO DE CLASES" + " " * 30 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Buscar tabla de horario
+        tables = soup.find_all('table')
+        found = False
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            if len(rows) > 0:
+                found = True
+                for row in rows:
+                    cols = row.find_all(['th', 'td'])
+                    if cols:
+                        row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                        print(f"  {row_text}")
+        
+        if not found:
+            print("  ℹ️ No se encontró información de horario")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener horario: {e}")
+
+
+def show_kardex(session: UPQScraperSession) -> None:
+    """
+    Informa que el kardex no está disponible como endpoint separado.
+    Redirige al usuario a usar --historial.
+    """
+    print("\n" + "╭" + "─" * 78 + "╮")
+    print("│" + " " * 30 + "ℹ️  KARDEX ACADÉMICO" + " " * 29 + "│")
+    print("╰" + "─" * 78 + "╯\n")
+    
+    print("  ⚠️  El endpoint de kardex no está disponible en el sistema.")
+    print()
+    print("  📊 Para ver tu historial académico completo (incluye kardex), usa:")
+    print("  👉 python main.py --historial")
+    print()
+    print("  Este comando te mostrará:")
+    print("  • Mapa curricular completo")
+    print("  • Todas las materias cursadas")
+    print("  • Calificaciones por cuatrimestre")
+    print("  • Estancias profesionales")
+    print("  • Servicio social")
+    print("  • Y mucho más")
+    print("\n" + "╰" + "─" * 78 + "╯")
+
+
+def show_boleta(session: UPQScraperSession) -> None:
+    """Muestra la boleta de calificaciones."""
+    try:
+        print("\n📡 Obteniendo boleta de calificaciones...")
+        html = session.get_boleta()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 25 + "📋 BOLETA DE CALIFICACIONES" + " " * 26 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Buscar tabla de boleta
+        tables = soup.find_all('table')
+        found = False
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            if len(rows) > 0:
+                found = True
+                for row in rows:
+                    cols = row.find_all(['th', 'td'])
+                    if cols:
+                        row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                        print(f"  {row_text}")
+        
+        if not found:
+            print("  ℹ️ No se encontró boleta de calificaciones")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener boleta: {e}")
+
+
+def show_servicio_social(session: UPQScraperSession) -> None:
+    """
+    Informa que el servicio social no está disponible como endpoint separado.
+    Redirige al usuario a usar --historial.
+    """
+    print("\n" + "╭" + "─" * 78 + "╮")
+    print("│" + " " * 28 + "ℹ️  SERVICIO SOCIAL" + " " * 31 + "│")
+    print("╰" + "─" * 78 + "╯\n")
+    
+    print("  ⚠️  El endpoint de servicio social no está disponible como sección separada.")
+    print()
+    print("  📊 Para ver información de servicio social, usa:")
+    print("  👉 python main.py --historial")
+    print()
+    print("  Este comando te mostrará:")
+    print("  • Estado del servicio social")
+    print("  • Horas completadas")
+    print("  • Dependencia asignada")
+    print("  • Y toda tu trayectoria académica")
+    print("\n" + "╰" + "─" * 78 + "╯")
+
+
+def show_perfil_personal(session: UPQScraperSession) -> None:
+    """
+    Informa que el perfil no está disponible como endpoint separado.
+    Redirige al usuario a usar --info o --historial.
+    """
+    print("\n" + "╭" + "─" * 78 + "╮")
+    print("│" + " " * 29 + "ℹ️  PERFIL PERSONAL" + " " * 30 + "│")
+    print("╰" + "─" * 78 + "╯\n")
+    
+    print("  ⚠️  El endpoint de perfil no está disponible (error 404).")
+    print()
+    print("  📊 Para ver tu información personal, usa:")
+    print("  👉 python main.py --info      (datos básicos)")
+    print("  👉 python main.py --historial (información completa)")
+    print()
+    print("  Estos comandos te mostrarán:")
+    print("  • Nombre y matrícula")
+    print("  • Carrera y grupo")
+    print("  • Promedio y créditos")
+    print("  • Datos de contacto")
+    print("  • Y mucho más")
+    print("\n" + "╰" + "─" * 78 + "╯")
+
+
+def show_pagos(session: UPQScraperSession) -> None:
+    """Muestra el historial de pagos."""
+    try:
+        print("\n📡 Obteniendo historial de pagos...")
+        html = session.get_pagos()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 27 + "💰 HISTORIAL DE PAGOS" + " " * 30 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Buscar tabla de pagos
+        tables = soup.find_all('table')
+        found = False
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            if len(rows) > 0:
+                found = True
+                for row in rows:
+                    cols = row.find_all(['th', 'td'])
+                    if cols:
+                        row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                        print(f"  {row_text}")
+        
+        if not found:
+            print("  ℹ️ No se encontró historial de pagos")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener pagos: {e}")
+
+
+def show_adeudos(session: UPQScraperSession) -> None:
+    """Muestra los adeudos pendientes."""
+    try:
+        print("\n📡 Obteniendo adeudos...")
+        html = session.get_adeudos()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 30 + "⚠️ ADEUDOS PENDIENTES" + " " * 27 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Buscar tabla de adeudos
+        tables = soup.find_all('table')
+        found = False
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            if len(rows) > 0:
+                found = True
+                for row in rows:
+                    cols = row.find_all(['th', 'td'])
+                    if cols:
+                        row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                        print(f"  {row_text}")
+        
+        if not found:
+            print("  ✅ No se encontraron adeudos pendientes")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener adeudos: {e}")
+
+
+def show_documentos(session: UPQScraperSession) -> None:
+    """Muestra los documentos escolares disponibles."""
+    try:
+        print("\n📡 Obteniendo documentos escolares...")
+        html = session.get_documentos()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 26 + "📄 DOCUMENTOS ESCOLARES" + " " * 29 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Buscar documentos disponibles
+        documentos = []
+        links = soup.find_all('a')
+        
+        for link in links:
+            text = link.get_text(strip=True)
+            href = link.get('href', '')
+            if text and ('pdf' in href.lower() or 'documento' in text.lower() or 'constancia' in text.lower()):
+                documentos.append({'nombre': text, 'url': href})
+        
+        if documentos:
+            for doc in documentos:
+                print(f"  📄 {doc['nombre']}")
+                if doc['url']:
+                    print(f"     🔗 {doc['url']}")
+        else:
+            print("  ℹ️ No se encontraron documentos disponibles")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener documentos: {e}")
+
+
+def show_calendario(session: UPQScraperSession) -> None:
+    """Muestra el calendario académico."""
+    try:
+        print("\n📡 Obteniendo calendario académico...")
+        html = session.get_calendario()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 27 + "📆 CALENDARIO ACADÉMICO" + " " * 28 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Buscar tabla de calendario
+        tables = soup.find_all('table')
+        found = False
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            if len(rows) > 0:
+                found = True
+                for row in rows:
+                    cols = row.find_all(['th', 'td'])
+                    if cols:
+                        row_text = " | ".join([col.get_text(strip=True) for col in cols])
+                        print(f"  {row_text}")
+        
+        if not found:
+            print("  ℹ️ No se encontró calendario académico")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener calendario: {e}")
+
+
+def show_historial_promedios(session: UPQScraperSession) -> None:
+    """Muestra el historial de promedios por cuatrimestre."""
+    try:
+        print("\n📡 Obteniendo historial de promedios...")
+        html = session.get_info_general()
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        historial = []
+        
+        fieldsets = soup.find_all('fieldset')
+        for fieldset in fieldsets:
+            legend = fieldset.find('legend')
+            if legend:
+                legend_text = legend.get_text(strip=True).lower()
+                if 'historial' in legend_text or 'promedio' in legend_text or 'estadística' in legend_text:
+                    tables = fieldset.find_all('table')
+                    for table in tables:
+                        rows = table.find_all('tr')
+                        for row in rows:
+                            cols = row.find_all(['th', 'td'])
+                            if len(cols) >= 2:
+                                cuatrimestre = cols[0].get_text(strip=True)
+                                promedio = cols[1].get_text(strip=True)
+                                
+                                if re.search(r'\d+', cuatrimestre):
+                                    historial.append({
+                                        'cuatrimestre': cuatrimestre,
+                                        'promedio': promedio
+                                    })
+        
+        if not historial:
+            print("\n📝 No se encontró historial de promedios")
+            return
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
         print("│" + " " * 25 + "📈 HISTORIAL DE PROMEDIOS" + " " * 28 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
@@ -600,6 +937,60 @@ Ejemplos de uso:
         action='store_true',
         help='Mostrar historial de promedios por cuatrimestre'
     )
+    
+    parser.add_argument(
+        '--horario',
+        action='store_true',
+        help='Mostrar horario de clases'
+    )
+    
+    parser.add_argument(
+        '--kardex',
+        action='store_true',
+        help='Mostrar kardex académico completo'
+    )
+    
+    parser.add_argument(
+        '--boleta',
+        action='store_true',
+        help='Mostrar boleta de calificaciones'
+    )
+    
+    parser.add_argument(
+        '--servicio',
+        action='store_true',
+        help='Mostrar información del servicio social'
+    )
+    
+    parser.add_argument(
+        '--perfil',
+        action='store_true',
+        help='Mostrar perfil personal completo'
+    )
+    
+    parser.add_argument(
+        '--pagos',
+        action='store_true',
+        help='Mostrar historial de pagos'
+    )
+    
+    parser.add_argument(
+        '--adeudos',
+        action='store_true',
+        help='Mostrar adeudos pendientes'
+    )
+    
+    parser.add_argument(
+        '--documentos',
+        action='store_true',
+        help='Mostrar documentos escolares disponibles'
+    )
+    
+    parser.add_argument(
+        '--calendario',
+        action='store_true',
+        help='Mostrar calendario académico'
+    )
 
     args = parser.parse_args()
 
@@ -638,7 +1029,10 @@ Ejemplos de uso:
         return
 
     # Comandos que requieren conexión al sistema UPQ
-    if args.get_grades or args.check_new or args.json or args.info or args.promedio or args.creditos or args.estancias or args.historial:
+    if (args.get_grades or args.check_new or args.json or args.info or args.promedio or 
+        args.creditos or args.estancias or args.historial or args.horario or args.kardex or 
+        args.boleta or args.servicio or args.perfil or args.pagos or args.adeudos or 
+        args.documentos or args.calendario):
         # Validar configuración
         if not settings.validate():
             print("\n❌ Configura tus credenciales en el archivo .env")
@@ -680,6 +1074,42 @@ Ejemplos de uso:
                 
                 elif args.historial:
                     show_historial_promedios(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.horario:
+                    show_horario(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.kardex:
+                    show_kardex(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.boleta:
+                    show_boleta(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.servicio:
+                    show_servicio_social(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.perfil:
+                    show_perfil_personal(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.pagos:
+                    show_pagos(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.adeudos:
+                    show_adeudos(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.documentos:
+                    show_documentos(session)
+                    print("\n✅ Operación completada exitosamente")
+                
+                elif args.calendario:
+                    show_calendario(session)
                     print("\n✅ Operación completada exitosamente")
                 
                 elif args.get_grades or args.json:
