@@ -84,7 +84,93 @@ Bot is running. Press Ctrl+C to stop.
 
 ---
 
+## � Uso con Lenguaje Natural
+
+El bot ahora soporta **lenguaje natural** - ¡puedes hablar con él como lo harías con una persona! No necesitas memorizar comandos con `/`.
+
+### Ejemplos de Frases Naturales
+
+**Consultar Kardex:**
+- "¿Cuál es mi kardex?"
+- "Muéstrame mi historial de materias"
+- "Ver mi kardex completo"
+- "Quiero ver todas mis materias cursadas"
+
+**Ver Horario:**
+- "¿Cuál es mi horario?"
+- "Muéstrame mis clases"
+- "¿Qué clases tengo hoy?"
+- "Ver mi horario de clases"
+
+**Consultar Perfil:**
+- "Muéstrame mi perfil"
+- "¿Cuáles son mis datos personales?"
+- "Ver mi información"
+- "Quiero ver mi perfil completo"
+
+**Promedio y Calificaciones:**
+- "¿Cuál es mi promedio?"
+- "¿Qué promedio tengo?"
+- "Muéstrame mis calificaciones"
+- "Ver mi boleta"
+
+**Servicio Social:**
+- "¿Puedo hacer servicio social?"
+- "¿Cuál es el estatus de mi servicio?"
+- "Ver mi servicio social"
+
+**Estancias:**
+- "¿Cuándo termina mi estancia?"
+- "Muéstrame mis estancias"
+- "Ver estancias profesionales"
+
+**Pagos y Adeudos:**
+- "¿Cuánto debo?"
+- "Muéstrame mis pagos"
+- "¿Tengo adeudos?"
+- "Ver historial de pagos"
+
+**Materias Atrasadas:**
+- "¿Tengo materias atrasadas?"
+- "¿Qué materias debo?"
+- "Materias reprobadas"
+
+### ¿Cómo Funciona?
+
+El bot utiliza **reconocimiento de palabras clave** para entender tu intención. Detecta frases como:
+- "kardex", "kárdex", "historial de materias"
+- "horario", "clases", "qué clases tengo"
+- "perfil", "datos personales", "mi información"
+- "promedio", "qué promedio tengo"
+- "servicio social", "puedo hacer servicio"
+- "estancias", "estancia profesional"
+- "pagos", "adeudos", "cuánto debo"
+- "materias atrasadas", "materias reprobadas"
+
+**Nota:** También puedes seguir usando los comandos tradicionales con `/` si lo prefieres.
+
+---
+
+## 📚 Referencia Rápida
+
+| Lo que quieres saber | Díselo al bot |
+|---------------------|---------------|
+| 📖 Kardex completo | "Muéstrame mi kardex" |
+| 📅 Horario de clases | "¿Cuál es mi horario?" |
+| 👤 Perfil personal | "Ver mi perfil" |
+| 📊 Promedio | "¿Cuál es mi promedio?" |
+| 💼 Servicio social | "¿Puedo hacer servicio?" |
+| 🏢 Estancias | "Ver mis estancias" |
+| 💰 Pagos y adeudos | "¿Cuánto debo?" |
+| ⚠️ Materias atrasadas | "¿Tengo materias reprobadas?" |
+
+---
+
+---
+
 ## 📱 Referencia de Comandos
+
+**Nota:** Todos estos comandos también funcionan con **lenguaje natural**. Por ejemplo, en lugar de `/kardex` puedes decir "muéstrame mi kardex".
 
 ### `/start` - Registrar Credenciales
 

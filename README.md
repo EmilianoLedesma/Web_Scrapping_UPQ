@@ -14,6 +14,7 @@ Sistema profesional de web scraping que proporciona acceso automatizado a la pla
 
 ## ✨ Características Principales
 
+- 💬 **Interfaz de Lenguaje Natural** - Habla con el bot naturalmente sin comandos `/` - "muéstrame mi kardex"
 - 🤖 **Integración con Telegram** - Bot conversacional multi-usuario con autenticación personalizada
 - 🔐 **Autenticación Multi-Usuario** - Cada usuario usa sus propias credenciales de forma segura
 - 📁 **Almacenamiento Separado por Usuario** - Datos aislados para cada usuario del bot
@@ -21,7 +22,7 @@ Sistema profesional de web scraping que proporciona acceso automatizado a la pla
 - 🔔 **Detección de Cambios en Tiempo Real** - Notificaciones instantáneas de actualizaciones de calificaciones
 - 💾 **Almacenamiento Persistente** - Historial completo con snapshots individuales por usuario
 - ⌨️ **Interfaz de Línea de Comandos** - CLI completa para scripting y automatización
-- 📊 **Análisis Académico Avanzado** - Promedio, créditos, estancias, historial y materias atrasadas
+- 📊 **Análisis Académico Avanzado** - Promedio, créditos, estancias, servicio social, horarios y más
 - 🏗️ **Arquitectura Modular** - Separación clara de responsabilidades, lista para integración con API REST
 - 🔒 **Código Type-Safe** - Type hints completos y soporte para análisis estático
 
@@ -151,27 +152,33 @@ python run_bot.py
 
 **Comandos disponibles:**
 
-| Comando | Descripción |
-|---------|-------------|
-| `/start` | Inicializar el bot y registrar credenciales personales |
-| `/logout` | Eliminar credenciales y cerrar sesión |
-| `/grades` | Obtener y mostrar calificaciones actuales |
-| `/check` | Verificar actualizaciones de calificaciones |
-| `/stats` | Ver estadísticas del sistema |
-| `/info` | Información del perfil académico |
-| `/promedio` | Consultar promedio general |
-| `/creditos` | Ver créditos cursados y restantes |
-| `/estancias` | Información de estancias profesionales |
-| `/historial` | Historial académico completo |
-| `/materias` | Consultar materias atrasadas |
-| `/help` | Mostrar ayuda de comandos |
+| Comando | Descripción | Ejemplo en Lenguaje Natural |
+|---------|-------------|----------------------------|
+| `/start` | Registrar credenciales personales | - |
+| `/logout` | Eliminar credenciales y cerrar sesión | - |
+| `/kardex` | Kardex académico completo | "muéstrame mi kardex" |
+| `/perfil` | Perfil personal del estudiante | "ver mi perfil" |
+| `/horario` | Horario de clases por día y hora | "cuál es mi horario" |
+| `/servicio` | Estado del servicio social | "puedo hacer servicio social" |
+| `/boleta` | Boleta de calificaciones actual | "ver mi boleta" |
+| `/pagos` | Historial de pagos y adeudos | "cuánto debo" |
+| `/grades` | Calificaciones actuales | "mis calificaciones" |
+| `/check` | Verificar cambios | "hay cambios en mis calificaciones" |
+| `/stats` | Estadísticas del sistema | - |
+| `/promedio` | Promedio general | "cuál es mi promedio" |
+| `/creditos` | Créditos cursados y restantes | "cuántos créditos tengo" |
+| `/estancias` | Estancias profesionales | "cuándo termina mi estancia" |
+| `/historial` | Historial académico completo | "ver mi historial" |
+| `/materias` | Materias atrasadas | "tengo materias atrasadas" |
+| `/help` | Ayuda de comandos | "ayuda" |
 
 **Características del Bot:**
 
+- 💬 **Lenguaje Natural**: Habla con el bot sin usar comandos - "muéstrame mi kardex completo"
 - 🔐 **Autenticación Personalizada**: Cada usuario registra sus propias credenciales
 - 📁 **Datos Aislados**: Almacenamiento separado por usuario
 - 🎯 **Detección Automática de iid**: Extracción automática del ID de inscripción
-- 💬 **Interfaz Natural**: Responde a mensajes en lenguaje natural
+- � **Respuestas Descriptivas**: Todas las respuestas en formato texto legible y descriptivo
 - 🔔 **Notificaciones**: Alertas de cambios en calificaciones
 
 Para documentación detallada del bot, consulta [bot/README.md](bot/README.md)

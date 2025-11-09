@@ -274,7 +274,15 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
         help_text = """
 📚 *Ayuda - Bot de Calificaciones UPQ*
 
-*📊 Comandos Principales:*
+*� ¡Habla conmigo naturalmente!*
+Puedes preguntarme:
+• "¿Cuál es mi promedio?"
+• "Muéstrame mi horario"
+• "¿Cuál es mi kardex?"
+• "¿Tengo materias atrasadas?"
+• "¿Puedo hacer servicio social?"
+
+*�📊 Comandos Principales:*
 /grades - Calificaciones actuales
 /check - Detectar cambios
 /stats - Estadísticas
@@ -308,8 +316,6 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
 /start - Registrar credenciales
 /logout - Eliminar credenciales
 /help - Este mensaje
-
-*💬 Tip:* También puedes usar lenguaje natural para hacer preguntas.
 """
         await update.message.reply_text(help_text, parse_mode='Markdown')
     
@@ -619,36 +625,47 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
             # Cerrar sesión
             session.authenticator.logout()
             
-            # Buscar la tabla grid (primera tabla con materias)
-            table = soup.find('table', class_='grid')
+            # Buscar la tabla de horario por días (segunda tabla)
+            table_horario = soup.find('table', class_='horario')
             
-            if not table:
+            if not table_horario:
                 await update.message.reply_text("📝 No se encontró información de horario")
                 return
             
+            # Obtener header (días)
+            header = table_horario.find('tr')
+            dias = [th.text.strip() for th in header.find_all('th')[1:]]
+            
             message = "📅 *HORARIO DE CLASES*\n\n"
             
-            # Obtener filas (saltando el header)
-            rows = table.find_all('tr')[1:]  # Saltar header
+            # Procesar filas (saltar header)
+            rows = table_horario.find_all('tr')[1:]
             
-            if not rows:
-                await update.message.reply_text("📝 No hay materias registradas")
-                return
+            horario_dict = {dia: [] for dia in dias}
             
-            # Procesar cada materia
             for row in rows:
-                cols = row.find_all('td')
-                if len(cols) >= 6:
-                    num = cols[0].text.strip()
-                    materia = cols[2].text.strip()
-                    aula = cols[3].text.strip()
-                    grupo = cols[4].text.strip()
-                    profesor = cols[5].text.strip()
+                hora_th = row.find('th')
+                if hora_th:
+                    hora = hora_th.text.strip()
+                    celdas = row.find_all('td')
                     
-                    message += f"📚 *{materia}*\n"
-                    message += f"├ 🏛️ Aula: {aula}\n"
-                    message += f"├ 👥 Grupo: {grupo}\n"
-                    message += f"└ 👨‍🏫 {profesor}\n\n"
+                    for i, celda in enumerate(celdas):
+                        texto = celda.get_text(strip=True)
+                        if texto and texto != '&nbsp;':
+                            # Extraer solo el nombre de la materia (sin horarios)
+                            materia = texto.split('[')[0].strip()
+                            if materia:
+                                horario_dict[dias[i]].append(f"  {hora} - {materia}")
+            
+            # Construir mensaje por día
+            for dia in dias:
+                if horario_dict[dia]:
+                    message += f"*{dia}*\n"
+                    message += '\n'.join(horario_dict[dia])
+                    message += "\n\n"
+            
+            if not any(horario_dict.values()):
+                message += "� No hay clases programadas"
             
             await update.message.reply_text(message, parse_mode='Markdown')
                     
@@ -1623,14 +1640,22 @@ Ahora envíame tu contraseña del Sistema UPQ.
 
 Tus credenciales han sido guardadas de forma segura.
 
-Ya puedes usar todos los comandos del bot:
-• /grades - Ver calificaciones
-• /promedio - Ver promedio
-• /creditos - Ver créditos
-• /estancias - Ver estancias
-• /help - Ver todos los comandos
+Ya puedes usar todos los comandos del bot o simplemente preguntarme:
 
-¡Intenta preguntarme "¿Cuál es mi promedio?" o cualquier otra consulta! 😊
+📚 *Comandos principales:*
+• /kardex - Ver kardex completo
+• /perfil - Ver tu perfil
+• /horario - Ver horario de clases
+• /servicio - Ver servicio social
+• /estancias - Ver estancias
+
+💬 *O pregunta directamente:*
+• "¿Cuál es mi promedio?"
+• "Muéstrame mi horario"
+• "¿Tengo materias atrasadas?"
+• "¿Cuándo termina mi estancia?"
+
+¡Intenta preguntarme cualquier cosa! 😊
 """
                 await update.message.reply_text(message, parse_mode='Markdown')
                 return
@@ -1685,7 +1710,42 @@ Usa /start para comenzar el proceso de registro.
         info_keywords = [
             'quién soy', 'quien soy', 'mi información', 'mi info', 'mis datos',
             'matrícula', 'matricula', 'mi nombre', 'mi carrera', 'mi generación',
-            'mi generacion', 'mi grupo', 'qué cuatrimestre', 'que cuatrimestre'
+            'mi generacion', 'mi grupo', 'qué cuatrimestre', 'que cuatrimestre',
+            'perfil', 'mi perfil', 'ver perfil', 'mostrar perfil', 'datos personales'
+        ]
+        
+        # Kardex
+        kardex_keywords = [
+            'kardex', 'kárdex', 'historial de materias', 'todas mis materias',
+            'materias cursadas', 'ver kardex', 'mostrar kardex', 'mi kardex',
+            'historial académico completo', 'historial completo'
+        ]
+        
+        # Horario
+        horario_keywords = [
+            'horario', 'mi horario', 'clases', 'mis clases', 'horario de clases',
+            'qué clases tengo', 'que clases tengo', 'cuándo tengo clase',
+            'cuando tengo clase', 'ver horario', 'mostrar horario', 'calendario'
+        ]
+        
+        # Servicio Social
+        servicio_keywords = [
+            'servicio social', 'servicio', 'puedo hacer servicio', 'servicio comunitario',
+            'requisitos servicio', 'cuando puedo servicio', 'cuándo puedo servicio',
+            'estatus servicio', 'estado servicio'
+        ]
+        
+        # Boleta
+        boleta_keywords = [
+            'boleta', 'boleta de calificaciones', 'ver boleta', 'mostrar boleta',
+            'calificaciones actuales', 'calificaciones del periodo'
+        ]
+        
+        # Pagos
+        pagos_keywords = [
+            'pagos', 'mis pagos', 'historial de pagos', 'cuánto he pagado',
+            'cuanto he pagado', 'ver pagos', 'adeudos', 'debo dinero', 'cuánto debo',
+            'cuanto debo'
         ]
         
         # Historial académico
@@ -1723,9 +1783,29 @@ Usa /start para comenzar el proceso de registro.
         
         # ========== DETECCIÓN DE INTENCIÓN ==========
         
-        # Información general del perfil
-        if any(keyword in text_lower for keyword in info_keywords):
-            await self.info_general_command(update, context)
+        # Kardex académico
+        if any(keyword in text_lower for keyword in kardex_keywords):
+            await self.kardex_command(update, context)
+        
+        # Perfil personal (incluye info_keywords)
+        elif any(keyword in text_lower for keyword in info_keywords):
+            await self.perfil_personal_command(update, context)
+        
+        # Horario de clases
+        elif any(keyword in text_lower for keyword in horario_keywords):
+            await self.horario_command(update, context)
+        
+        # Servicio social
+        elif any(keyword in text_lower for keyword in servicio_keywords):
+            await self.servicio_social_command(update, context)
+        
+        # Boleta de calificaciones
+        elif any(keyword in text_lower for keyword in boleta_keywords):
+            await self.boleta_command(update, context)
+        
+        # Pagos y adeudos
+        elif any(keyword in text_lower for keyword in pagos_keywords):
+            await self.pagos_command(update, context)
             
         # Promedio general
         elif any(keyword in text_lower for keyword in promedio_keywords):
@@ -1768,20 +1848,22 @@ Usa /start para comenzar el proceso de registro.
             response = (
                 "🤔 No estoy seguro de qué necesitas.\n\n"
                 "Puedes preguntarme cosas como:\n\n"
-                "📊 *Sobre tus calificaciones:*\n"
-                "• \"¿Cuál es mi promedio general?\"\n"
-                "• \"¿Tengo materias atrasadas?\"\n"
-                "• \"Muéstrame mi historial\"\n\n"
+                "� *Sobre tu información académica:*\n"
+                "• \"Muéstrame mi perfil\"\n"
+                "• \"¿Cuál es mi kardex?\"\n"
+                "• \"¿Cuál es mi horario?\"\n"
+                "• \"¿Cuál es mi promedio?\"\n\n"
                 "🎓 *Sobre tu avance:*\n"
+                "• \"¿Tengo materias atrasadas?\"\n"
                 "• \"¿Cuántos créditos llevo?\"\n"
-                "• \"¿Cuánto me falta para terminar?\"\n\n"
+                "• \"¿Puedo hacer servicio social?\"\n\n"
                 "💼 *Sobre estancias:*\n"
                 "• \"¿Cuándo termina mi estancia?\"\n"
                 "• \"¿Dónde estoy haciendo mi estancia?\"\n\n"
-                "👤 *Información personal:*\n"
-                "• \"¿Quién soy?\"\n"
-                "• \"¿Cuál es mi matrícula?\"\n\n"
-                "O usa /help para ver todos los comandos"
+                "� *Sobre pagos:*\n"
+                "• \"¿Cuánto debo?\"\n"
+                "• \"Muéstrame mis pagos\"\n\n"
+                "O usa /help para ver todos los comandos disponibles"
             )
             await update.message.reply_text(response, parse_mode='Markdown')
     
