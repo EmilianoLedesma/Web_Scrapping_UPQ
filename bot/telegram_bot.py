@@ -465,20 +465,23 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
                 )
                 return
             
-            # Importar parser
+            # Importar parser y sesión
             from scraper.parser import parse_estancias
             from scraper.fetcher import UPQScraperSession
-            from scraper.auth import UPQAuthenticator
             
-            # Autenticar y obtener info general
-            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
-            authenticator.login()
+            # Crear sesión, autenticar y obtener info general
+            session = UPQScraperSession(username=creds['username'], password=creds['password'])
+            if not session.login():
+                await update.message.reply_text("❌ Error de autenticación")
+                return
             
-            fetcher = UPQScraperSession(authenticator)
-            info_html = fetcher.get_info_general()
+            info_html = session.get_info_general()
             
             # Parsear estancias
             estancias = parse_estancias(info_html)
+            
+            # Cerrar sesión
+            session.authenticator.logout()
             
             if not estancias:
                 await update.message.reply_text("📝 No se encontraron estancias registradas")
@@ -604,32 +607,54 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
                 await update.message.reply_text("❌ No tienes credenciales configuradas. Usa /start")
                 return
             
-            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
-                if not session.login():
-                    await update.message.reply_text("❌ Error de autenticación")
-                    return
-                
-                html = session.get_horario()
-                soup = BeautifulSoup(html, 'html.parser')
-                
-                message = "📅 *Horario de Clases*\n\n"
-                tables = soup.find_all('table')
-                
-                if tables:
-                    for table in tables[:1]:  # Primera tabla
-                        rows = table.find_all('tr')
-                        for row in rows:
-                            cols = row.find_all(['th', 'td'])
-                            if cols:
-                                row_text = " | ".join([col.get_text(strip=True) for col in cols])
-                                message += f"`{row_text}`\n"
-                    await update.message.reply_text(message, parse_mode='Markdown')
-                else:
-                    await update.message.reply_text("📝 No se encontró información de horario")
+            # Crear sesión y obtener horario
+            session = UPQScraperSession(username=creds['username'], password=creds['password'])
+            if not session.login():
+                await update.message.reply_text("❌ Error de autenticación")
+                return
+            
+            html = session.get_horario()
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Cerrar sesión
+            session.authenticator.logout()
+            
+            # Buscar la tabla grid (primera tabla con materias)
+            table = soup.find('table', class_='grid')
+            
+            if not table:
+                await update.message.reply_text("📝 No se encontró información de horario")
+                return
+            
+            message = "📅 *HORARIO DE CLASES*\n\n"
+            
+            # Obtener filas (saltando el header)
+            rows = table.find_all('tr')[1:]  # Saltar header
+            
+            if not rows:
+                await update.message.reply_text("📝 No hay materias registradas")
+                return
+            
+            # Procesar cada materia
+            for row in rows:
+                cols = row.find_all('td')
+                if len(cols) >= 6:
+                    num = cols[0].text.strip()
+                    materia = cols[2].text.strip()
+                    aula = cols[3].text.strip()
+                    grupo = cols[4].text.strip()
+                    profesor = cols[5].text.strip()
+                    
+                    message += f"📚 *{materia}*\n"
+                    message += f"├ 🏛️ Aula: {aula}\n"
+                    message += f"├ 👥 Grupo: {grupo}\n"
+                    message += f"└ 👨‍🏫 {profesor}\n\n"
+            
+            await update.message.reply_text(message, parse_mode='Markdown')
                     
         except Exception as e:
             self.logger.error(f"Error en horario_command: {e}")
-            await update.message.reply_text("❌ Error al obtener horario")
+            await update.message.reply_text(f"❌ Error al obtener horario: {str(e)}")
     
     async def kardex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Muestra el kardex académico del usuario"""
@@ -645,20 +670,23 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
                 )
                 return
             
-            # Importar parser
+            # Importar parser y sesión
             from scraper.parser import parse_kardex
             from scraper.fetcher import UPQScraperSession
-            from scraper.auth import UPQAuthenticator
             
-            # Autenticar y obtener kardex
-            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
-            authenticator.login()
+            # Crear sesión, autenticar y obtener kardex
+            session = UPQScraperSession(username=creds['username'], password=creds['password'])
+            if not session.login():
+                await update.message.reply_text("❌ Error de autenticación")
+                return
             
-            fetcher = UPQScraperSession(authenticator)
-            kardex_html = fetcher.get_kardex()
+            kardex_html = session.get_kardex()
             
             # Parsear kardex
             materias = parse_kardex(kardex_html)
+            
+            # Cerrar sesión
+            session.authenticator.logout()
             
             if not materias:
                 await update.message.reply_text("❌ No se encontró información del kardex.")
@@ -751,20 +779,23 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
                 )
                 return
             
-            # Importar parser
+            # Importar parser y sesión
             from scraper.parser import parse_servicio_social
             from scraper.fetcher import UPQScraperSession
-            from scraper.auth import UPQAuthenticator
             
-            # Autenticar y obtener info general
-            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
-            authenticator.login()
+            # Crear sesión, autenticar y obtener info general
+            session = UPQScraperSession(username=creds['username'], password=creds['password'])
+            if not session.login():
+                await update.message.reply_text("❌ Error de autenticación")
+                return
             
-            fetcher = UPQScraperSession(authenticator)
-            info_html = fetcher.get_info_general()
+            info_html = session.get_info_general()
             
             # Parsear servicio social
             servicio = parse_servicio_social(info_html)
+            
+            # Cerrar sesión
+            session.authenticator.logout()
             
             if not servicio:
                 await update.message.reply_text("❌ No se encontró información del servicio social")
@@ -818,20 +849,23 @@ Usa /start para configurar tus credenciales y comenzar a usar el bot.
                 )
                 return
             
-            # Importar parser
+            # Importar parser y sesión
             from scraper.parser import parse_student_profile
             from scraper.fetcher import UPQScraperSession
-            from scraper.auth import UPQAuthenticator
             
-            # Autenticar y obtener perfil
-            authenticator = UPQAuthenticator(creds['matricula'], creds['password'])
-            authenticator.login()
+            # Crear sesión, autenticar y obtener perfil
+            session = UPQScraperSession(username=creds['username'], password=creds['password'])
+            if not session.login():
+                await update.message.reply_text("❌ Error de autenticación")
+                return
             
-            fetcher = UPQScraperSession(authenticator)
-            perfil_html = fetcher.get_perfil()
+            perfil_html = session.get_perfil()
             
             # Parsear perfil
             perfil = parse_student_profile(perfil_html)
+            
+            # Cerrar sesión
+            session.authenticator.logout()
             
             if not perfil:
                 await update.message.reply_text("❌ No se encontró información del perfil.")

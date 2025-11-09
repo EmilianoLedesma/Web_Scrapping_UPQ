@@ -522,25 +522,42 @@ def parse_student_profile(html: str) -> Dict[str, str]:
     soup = BeautifulSoup(html, 'html.parser')
     perfil = {}
     
-    # Buscar todos los elementos <strong> que contienen etiquetas de campos
-    for strong in soup.find_all('strong'):
-        campo_text = strong.text.strip()
-        
-        # Remover : y espacios, convertir a minúsculas y _ para uniformidad
-        campo = campo_text.replace(':', '').strip().lower().replace(' ', '_')
-        
-        # Obtener el valor que está después del <strong>
-        valor = ''
-        next_sibling = strong.next_sibling
-        
-        if next_sibling:
-            if isinstance(next_sibling, str):
-                valor = next_sibling.strip()
-            else:
-                valor = next_sibling.text.strip() if hasattr(next_sibling, 'text') else ''
-        
-        if valor:
-            perfil[campo] = valor
+    # Buscar la tabla admintable (estructura principal del perfil)
+    table = soup.find('table', class_='admintable')
+    if table:
+        for row in table.find_all('tr'):
+            th = row.find('th')
+            td = row.find('td')
+            if th and td:
+                # Normalizar el nombre del campo
+                campo = th.text.strip().replace(':', '').strip()
+                valor = td.text.strip()
+                
+                # Mapear a los nombres esperados
+                campo_map = {
+                    'Nombre': 'nombre',
+                    'Matricula': 'matricula',
+                    'Matrícula': 'matricula',
+                    'Carrera': 'carrera',
+                    'Generación': 'generacion',
+                    'Grupo': 'grupo',
+                    'Último Cuatrimestre': 'ultimo_cuatrimestre',
+                    'Promedio General': 'promedio_general',
+                    'Materias Aprobadas': 'materias_aprobadas',
+                    'Créditos Aprobados': 'creditos_aprobados',
+                    'Materias No Acreditadas': 'materias_no_acreditadas',
+                    'Nivel Inglés': 'nivel_ingles',
+                    'Estatus Actual': 'estatus',
+                    'NSS': 'nss',
+                    'Tutores': 'tutor',
+                    'Correo Tutor': 'email_tutor',
+                    'Servicio Social': 'servicio_social',
+                    'Bloque Presencial': 'bloque_presencial'
+                }
+                
+                campo_key = campo_map.get(campo, campo.lower().replace(' ', '_'))
+                if valor:  # Solo agregar si tiene valor
+                    perfil[campo_key] = valor
     
     # Extraer foto si existe
     foto_img = soup.find('img', src=re.compile(r'/uploads/fotos/alumnos/'))
@@ -1211,8 +1228,8 @@ def parse_servicio_social(html: str) -> Dict[str, Any]:
             'activo': False,
             'materias_requeridas': '45',
             'materias_faltantes': '0',
-            'estatus': 'PUEDE REALIZAR SERVICIO SOCIAL',
-            'cumple_requisitos': True
+            'estatus': 'NO CONCLUIDO',
+            'cumple_requisitos': False
         }
     """
     soup = BeautifulSoup(html, 'html.parser')
@@ -1229,34 +1246,62 @@ def parse_servicio_social(html: str) -> Dict[str, Any]:
         print("⚠️  No se encontró sección de servicio social")
         return {}
     
-    # Buscar la tabla dentro de la sección
-    table = servicio_section.find('table', class_='grid')
-    if not table:
-        print("⚠️  No se encontró tabla de servicio social")
-        return {}
-    
     servicio = {}
-    rows = table.find_all('tr')
     
-    for row in rows:
-        cells = row.find_all('td')
-        if len(cells) >= 2:
-            key = cells[0].text.strip().rstrip(':')
-            value = cells[1].text.strip()
-            
-            if 'Servicio Social' in key:
-                servicio['activo'] = value.upper() == 'SI'
-            elif 'Materias Requeridas' in key:
-                servicio['materias_requeridas'] = value
-            elif 'Materias Faltantes' in key:
-                servicio['materias_faltantes'] = value
-            elif 'Estatus Servicio Social' in key:
-                servicio['estatus'] = value
+    # Buscar todas las tablas admintable dentro del fieldset
+    tables = servicio_section.find_all('table', class_='admintable')
+    
+    if tables:
+        # Cada tabla tiene una fila con th y td
+        for table in tables:
+            row = table.find('tr')
+            if row:
+                th = row.find('th')
+                td = row.find('td')
+                if th and td:
+                    key = th.text.strip().rstrip(':')
+                    value = td.text.strip()
+                    
+                    # Orden importa: verificar primero los más específicos
+                    if 'Estatus Servicio Social' in key:
+                        servicio['estatus'] = value
+                    elif 'Materias Requeridas' in key:
+                        servicio['materias_requeridas'] = value
+                    elif 'Materias Faltantes' in key:
+                        servicio['materias_faltantes'] = value
+                    elif 'Servicio Social' in key:
+                        servicio['activo'] = value.upper() == 'SI'
+    else:
+        # Fallback: buscar tabla grid si no hay admintable
+        table = servicio_section.find('table', class_='grid')
+        if table:
+            rows = table.find_all('tr')
+            for row in rows:
+                cells = row.find_all('td')
+                if len(cells) >= 2:
+                    key = cells[0].text.strip().rstrip(':')
+                    value = cells[1].text.strip()
+                    
+                    # Orden importa: verificar primero los más específicos
+                    if 'Estatus Servicio Social' in key:
+                        servicio['estatus'] = value
+                    elif 'Materias Requeridas' in key:
+                        servicio['materias_requeridas'] = value
+                    elif 'Materias Faltantes' in key:
+                        servicio['materias_faltantes'] = value
+                    elif 'Servicio Social' in key:
+                        servicio['activo'] = value.upper() == 'SI'
     
     # Determinar si cumple requisitos
-    if servicio.get('materias_faltantes'):
-        servicio['cumple_requisitos'] = servicio['materias_faltantes'] == '0'
+    if 'materias_faltantes' in servicio:
+        try:
+            servicio['cumple_requisitos'] = int(servicio['materias_faltantes']) == 0
+        except ValueError:
+            servicio['cumple_requisitos'] = False
+    else:
+        servicio['cumple_requisitos'] = False
     
-    print(f"✅ Servicio social parseado: {servicio}")
+    print(f"✅ Servicio social parseado: {len(servicio)} campos encontrados")
     return servicio
+
 

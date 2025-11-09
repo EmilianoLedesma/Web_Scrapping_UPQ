@@ -417,39 +417,16 @@ def show_creditos(session: UPQScraperSession) -> None:
 def show_estancias(session: UPQScraperSession) -> None:
     """Muestra información de estancias profesionales."""
     try:
+        from scraper.parser import parse_estancias
+        
         print("\n📡 Obteniendo información de estancias...")
         html = session.get_info_general()
         
-        soup = BeautifulSoup(html, 'html.parser')
-        estancias = []
+        # Guardar debug
+        with open("debug_estancias_main.html", "w", encoding="utf-8") as f:
+            f.write(html)
         
-        fieldsets = soup.find_all('fieldset')
-        for fieldset in fieldsets:
-            legend = fieldset.find('legend')
-            if legend and 'estancia' in legend.get_text(strip=True).lower():
-                tables = fieldset.find_all('table')
-                for table in tables:
-                    estancia_data = {}
-                    rows = table.find_all('tr')
-                    for row in rows:
-                        cols = row.find_all(['th', 'td'])
-                        if len(cols) >= 2:
-                            key = cols[0].get_text(strip=True).lower()
-                            value = cols[1].get_text(strip=True)
-                            
-                            if 'empresa' in key or 'organización' in key or 'organizacion' in key:
-                                estancia_data['empresa'] = value
-                            elif 'proyecto' in key:
-                                estancia_data['proyecto'] = value
-                            elif 'fecha inicio' in key or 'inicia' in key:
-                                estancia_data['fecha_inicio'] = value
-                            elif 'fecha fin' in key or 'termina' in key or 'concluye' in key:
-                                estancia_data['fecha_fin'] = value
-                            elif 'asesor' in key:
-                                estancia_data['asesor'] = value
-                    
-                    if estancia_data:
-                        estancias.append(estancia_data)
+        estancias = parse_estancias(html)
         
         if not estancias:
             print("\n📝 No se encontraron estancias registradas")
@@ -459,24 +436,40 @@ def show_estancias(session: UPQScraperSession) -> None:
         print("│" + " " * 24 + "💼 ESTANCIAS PROFESIONALES" + " " * 27 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
-        for i, estancia in enumerate(estancias, 1):
-            print(f"  Estancia {i}:")
-            if 'empresa' in estancia:
-                print(f"    🏢 Empresa: {estancia['empresa']}")
-            if 'proyecto' in estancia:
-                print(f"    📋 Proyecto: {estancia['proyecto']}")
-            if 'fecha_inicio' in estancia:
-                print(f"    📅 Inicio: {estancia['fecha_inicio']}")
-            if 'fecha_fin' in estancia:
-                print(f"    🏁 Fin: {estancia['fecha_fin']}")
-            if 'asesor' in estancia:
-                print(f"    👨‍🏫 Asesor: {estancia['asesor']}")
+        for estancia in estancias:
+            numero = estancia.get('numero', '?')
+            curso = estancia.get('curso', 'N/A')
+            empresa = estancia.get('empresa', 'N/A')
+            periodo = estancia.get('periodo', 'N/A')
+            estatus = estancia.get('estatus', 'N/A')
+            descripcion = estancia.get('descripcion', '')
+            
+            # Emoji según estatus
+            if estatus == "CONCLUIDO":
+                emoji_estatus = "✅"
+            elif estatus == "AUTORIZADO":
+                emoji_estatus = "🔄"
+            else:
+                emoji_estatus = "📋"
+            
+            print(f"  {emoji_estatus} {curso}")
+            print(f"     🏢 Empresa: {empresa}")
+            print(f"     📅 Periodo: {periodo}")
+            print(f"     📊 Estatus: {estatus}")
+            
+            if descripcion:
+                # Mostrar solo los primeros 100 caracteres de la descripción
+                desc_corta = descripcion[:100] + "..." if len(descripcion) > 100 else descripcion
+                print(f"     � {desc_corta}")
+            
             print()
         
         print("╰" + "─" * 78 + "╯")
         
     except Exception as e:
         print(f"\n❌ Error al obtener estancias: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def show_historial_promedios(session: UPQScraperSession) -> None:
@@ -562,27 +555,59 @@ def show_horario(session: UPQScraperSession) -> None:
 
 
 def show_kardex(session: UPQScraperSession) -> None:
-    """
-    Informa que el kardex no está disponible como endpoint separado.
-    Redirige al usuario a usar --historial.
-    """
-    print("\n" + "╭" + "─" * 78 + "╮")
-    print("│" + " " * 30 + "ℹ️  KARDEX ACADÉMICO" + " " * 29 + "│")
-    print("╰" + "─" * 78 + "╯\n")
-    
-    print("  ⚠️  El endpoint de kardex no está disponible en el sistema.")
-    print()
-    print("  📊 Para ver tu historial académico completo (incluye kardex), usa:")
-    print("  👉 python main.py --historial")
-    print()
-    print("  Este comando te mostrará:")
-    print("  • Mapa curricular completo")
-    print("  • Todas las materias cursadas")
-    print("  • Calificaciones por cuatrimestre")
-    print("  • Estancias profesionales")
-    print("  • Servicio social")
-    print("  • Y mucho más")
-    print("\n" + "╰" + "─" * 78 + "╯")
+    """Muestra el kardex académico completo."""
+    try:
+        from scraper.parser import parse_kardex
+        
+        print("\n📡 Obteniendo kardex académico...")
+        html = session.get_kardex()
+        
+        # Guardar debug
+        with open("debug_kardex_main.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        
+        materias = parse_kardex(html)
+        
+        if not materias:
+            print("\n❌ No se encontró información del kardex")
+            return
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 28 + "📚 KARDEX ACADÉMICO" + " " * 30 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        cuatrimestre_actual = None
+        for materia in materias:
+            cuatri = materia.get('cuatrimestre', 'N/A')
+            
+            # Encabezado de cuatrimestre
+            if cuatri != cuatrimestre_actual:
+                if cuatrimestre_actual is not None:
+                    print()
+                print(f"  ━━ Cuatrimestre {cuatri} ━━")
+                cuatrimestre_actual = cuatri
+            
+            # Información de materia
+            nombre = materia.get('materia', 'N/A')
+            cal = materia.get('calificacion', 'N/A')
+            tipo = materia.get('tipo_evaluacion', 'N/A')
+            
+            try:
+                cal_num = float(cal)
+                emoji_cal = "✅" if cal_num >= 7 else "❌"
+            except:
+                emoji_cal = "📝"
+            
+            print(f"  {emoji_cal} {nombre}: {cal}")
+            print(f"     └ {tipo}")
+        
+        print(f"\n  📊 Total: {len(materias)} materias cursadas")
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener kardex: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def show_boleta(session: UPQScraperSession) -> None:
@@ -621,49 +646,139 @@ def show_boleta(session: UPQScraperSession) -> None:
 
 
 def show_servicio_social(session: UPQScraperSession) -> None:
-    """
-    Informa que el servicio social no está disponible como endpoint separado.
-    Redirige al usuario a usar --historial.
-    """
-    print("\n" + "╭" + "─" * 78 + "╮")
-    print("│" + " " * 28 + "ℹ️  SERVICIO SOCIAL" + " " * 31 + "│")
-    print("╰" + "─" * 78 + "╯\n")
-    
-    print("  ⚠️  El endpoint de servicio social no está disponible como sección separada.")
-    print()
-    print("  📊 Para ver información de servicio social, usa:")
-    print("  👉 python main.py --historial")
-    print()
-    print("  Este comando te mostrará:")
-    print("  • Estado del servicio social")
-    print("  • Horas completadas")
-    print("  • Dependencia asignada")
-    print("  • Y toda tu trayectoria académica")
-    print("\n" + "╰" + "─" * 78 + "╯")
+    """Muestra información del servicio social."""
+    try:
+        from scraper.parser import parse_servicio_social
+        
+        print("\n📡 Obteniendo información de servicio social...")
+        html = session.get_info_general()
+        
+        # Guardar debug
+        with open("debug_servicio_main.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        
+        servicio = parse_servicio_social(html)
+        
+        if not servicio:
+            print("\n❌ No se encontró información del servicio social")
+            return
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 28 + "🎓 SERVICIO SOCIAL" + " " * 31 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Estado del servicio
+        activo = servicio.get('activo', False)
+        if activo:
+            print("  ✅ Servicio social ACTIVO\n")
+        else:
+            print("  ⏸️ Servicio social NO ACTIVO\n")
+        
+        # Requisitos
+        mat_req = servicio.get('materias_requeridas', 'N/A')
+        mat_falt = servicio.get('materias_faltantes', 'N/A')
+        
+        print(f"  📚 Materias requeridas: {mat_req}")
+        print(f"  📋 Materias faltantes: {mat_falt}\n")
+        
+        # Estatus
+        estatus = servicio.get('estatus', 'N/A')
+        cumple = servicio.get('cumple_requisitos', False)
+        
+        if cumple:
+            print(f"  ✅ {estatus}")
+            print("  ¡Puedes comenzar tu servicio social! 🎉")
+        else:
+            print(f"  ⚠️ {estatus}")
+            if mat_falt != 'N/A':
+                print(f"  Te faltan {mat_falt} materias para cumplir requisitos.")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener servicio social: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def show_perfil_personal(session: UPQScraperSession) -> None:
-    """
-    Informa que el perfil no está disponible como endpoint separado.
-    Redirige al usuario a usar --info o --historial.
-    """
-    print("\n" + "╭" + "─" * 78 + "╮")
-    print("│" + " " * 29 + "ℹ️  PERFIL PERSONAL" + " " * 30 + "│")
-    print("╰" + "─" * 78 + "╯\n")
-    
-    print("  ⚠️  El endpoint de perfil no está disponible (error 404).")
-    print()
-    print("  📊 Para ver tu información personal, usa:")
-    print("  👉 python main.py --info      (datos básicos)")
-    print("  👉 python main.py --historial (información completa)")
-    print()
-    print("  Estos comandos te mostrarán:")
-    print("  • Nombre y matrícula")
-    print("  • Carrera y grupo")
-    print("  • Promedio y créditos")
-    print("  • Datos de contacto")
-    print("  • Y mucho más")
-    print("\n" + "╰" + "─" * 78 + "╯")
+    """Muestra el perfil personal completo."""
+    try:
+        from scraper.parser import parse_student_profile
+        
+        print("\n📡 Obteniendo perfil personal...")
+        html = session.get_perfil()
+        
+        # Guardar debug
+        with open("debug_perfil_main.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        
+        perfil = parse_student_profile(html)
+        
+        if not perfil:
+            print("\n❌ No se encontró información del perfil")
+            return
+        
+        print("\n" + "╭" + "─" * 78 + "╮")
+        print("│" + " " * 27 + "👤 PERFIL PERSONAL" + " " * 31 + "│")
+        print("╰" + "─" * 78 + "╯\n")
+        
+        # Función helper para obtener campos
+        def get_field(key1, key2='', default='N/A'):
+            return perfil.get(key1, perfil.get(key2, default))
+        
+        # Datos personales
+        nombre = get_field('nombre')
+        matricula = get_field('matrícula', 'matricula')
+        carrera = get_field('carrera')
+        generacion = get_field('generación', 'generacion')
+        grupo = get_field('grupo')
+        
+        print("  📋 DATOS PERSONALES")
+        print(f"     Nombre: {nombre}")
+        print(f"     Matrícula: {matricula}")
+        print(f"     NSS: {get_field('nss')}")
+        print()
+        
+        # Datos académicos
+        cuatrimestre = get_field('último_cuatrimestre', 'ultimo_cuatrimestre')
+        promedio = get_field('promedio_general')
+        materias_aprob = get_field('materias_aprobadas')
+        materias_no_acred = get_field('materias_no_acreditadas')
+        creditos = get_field('créditos_aprobados', 'creditos_aprobados')
+        nivel_ingles = get_field('nivel_inglés', 'nivel_ingles')
+        estatus = get_field('estatus_actual', 'estatus')
+        
+        print("  🎓 DATOS ACADÉMICOS")
+        print(f"     Carrera: {carrera}")
+        print(f"     Generación: {generacion}")
+        print(f"     Grupo: {grupo}")
+        print(f"     Cuatrimestre: {cuatrimestre}")
+        print(f"     Estatus: {estatus}")
+        print()
+        
+        print("  📊 DESEMPEÑO")
+        print(f"     Promedio: {promedio}")
+        print(f"     Materias Aprobadas: {materias_aprob}")
+        print(f"     Materias No Acreditadas: {materias_no_acred}")
+        print(f"     Créditos Aprobados: {creditos}")
+        print(f"     Nivel Inglés: {nivel_ingles}")
+        print()
+        
+        # Tutoría
+        tutor = get_field('tutores', 'tutor')
+        email_tutor = get_field('correo_tutor', 'email_tutor')
+        
+        print("  👨‍🏫 TUTORÍA")
+        print(f"     Tutor: {tutor}")
+        print(f"     Email: {email_tutor}")
+        
+        print("\n" + "╰" + "─" * 78 + "╯")
+        
+    except Exception as e:
+        print(f"\n❌ Error al obtener perfil: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def show_pagos(session: UPQScraperSession) -> None:
