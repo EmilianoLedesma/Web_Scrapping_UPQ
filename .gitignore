@@ -58,6 +58,7 @@ debug_*.py
 # Data Storage
 storage/grades_history.json
 storage/bot_users.json
+storage/users/
 *.json.bak
 
 # Reports and Exploration Files

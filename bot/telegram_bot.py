@@ -147,12 +147,31 @@ class UPQTelegramBot:
             token: Token del bot de Telegram.
         """
         self.token = token
-        self.memory = GradesMemory()
+        # Ya NO usamos un único GradesMemory global
+        # self.memory = GradesMemory()
         self.credentials_manager = UserCredentialsManager()
         self.app = None
         self.logger = logging.getLogger(__name__)
         # Diccionario para manejar conversaciones de registro
         self.pending_registration = {}  # {user_id: {'step': 'username' | 'password', 'username': str}}
+    
+    def _get_user_memory(self, user_id: int) -> GradesMemory:
+        """
+        Obtiene el objeto GradesMemory específico para un usuario.
+        Cada usuario tiene su propio archivo de almacenamiento.
+        
+        Args:
+            user_id: ID del usuario de Telegram.
+            
+        Returns:
+            GradesMemory: Objeto de memoria para el usuario.
+        """
+        from pathlib import Path
+        # Crear un archivo separado por usuario
+        storage_dir = Path("storage/users")
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        user_storage_path = storage_dir / f"user_{user_id}_grades.json"
+        return GradesMemory(storage_path=user_storage_path)
         
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Comando /start - Inicia el bot y registra credenciales si es necesario."""
@@ -547,19 +566,25 @@ También puedes hacer preguntas como:
         await update.message.reply_text("📡 Conectando al sistema UPQ...")
         
         try:
-            # Validar configuración
-            if not settings.validate():
+            user_id = update.effective_user.id
+            
+            # Verificar si el usuario tiene credenciales
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
                 await update.message.reply_text(
-                    "❌ Error: Credenciales no configuradas en el servidor.\n"
-                    "Contacta al administrador."
+                    "❌ No tienes credenciales registradas.\n"
+                    "Usa /start para registrarte primero."
                 )
                 return
             
-            # Crear sesión y autenticar
-            with UPQScraperSession() as session:
+            # Crear sesión con credenciales del usuario
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
                 # Login
                 if not session.login():
-                    await update.message.reply_text("❌ Error de autenticación con el sistema UPQ")
+                    await update.message.reply_text(
+                        "❌ Error de autenticación con el sistema UPQ.\n"
+                        "Verifica tus credenciales con /logout y /start"
+                    )
                     return
                 
                 # Obtener HTML de calificaciones
@@ -569,9 +594,10 @@ También puedes hacer preguntas como:
                 parser = UPQGradesParser(html)
                 grades = parser.parse_grades()
                 
-                # Guardar snapshot
-                self.memory.add_snapshot(grades)
-                self.memory.save()
+                # Guardar snapshot en el almacenamiento del usuario
+                user_memory = self._get_user_memory(user_id)
+                user_memory.add_snapshot(grades)
+                user_memory.save()
                 
                 # Formatear y enviar
                 if grades:
@@ -604,19 +630,25 @@ También puedes hacer preguntas como:
         await update.message.reply_text("🔍 Verificando nuevas calificaciones...")
         
         try:
-            # Validar configuración
-            if not settings.validate():
+            user_id = update.effective_user.id
+            
+            # Verificar si el usuario tiene credenciales
+            creds = self.credentials_manager.get_credentials(user_id)
+            if not creds:
                 await update.message.reply_text(
-                    "❌ Error: Credenciales no configuradas en el servidor.\n"
-                    "Contacta al administrador."
+                    "❌ No tienes credenciales registradas.\n"
+                    "Usa /start para registrarte primero."
                 )
                 return
             
-            # Crear sesión y autenticar
-            with UPQScraperSession() as session:
+            # Crear sesión con credenciales del usuario
+            with UPQScraperSession(username=creds['username'], password=creds['password']) as session:
                 # Login
                 if not session.login():
-                    await update.message.reply_text("❌ Error de autenticación con el sistema UPQ")
+                    await update.message.reply_text(
+                        "❌ Error de autenticación con el sistema UPQ.\n"
+                        "Verifica tus credenciales con /logout y /start"
+                    )
                     return
                 
                 # Obtener calificaciones actuales
@@ -624,11 +656,14 @@ También puedes hacer preguntas como:
                 parser = UPQGradesParser(html)
                 current_grades = parser.parse_grades()
                 
+                # Usar almacenamiento del usuario
+                user_memory = self._get_user_memory(user_id)
+                
                 # Guardar snapshot
-                self.memory.add_snapshot(current_grades)
+                user_memory.add_snapshot(current_grades)
                 
                 # Detectar cambios
-                snapshots = self.memory.data.get("snapshots", [])
+                snapshots = user_memory.data.get("snapshots", [])
                 
                 if len(snapshots) < 2:
                     await update.message.reply_text(
@@ -636,12 +671,12 @@ También puedes hacer preguntas como:
                         "Este es el primer snapshot guardado.\n\n"
                         "✅ Ejecuta /check nuevamente en el futuro para detectar cambios."
                     )
-                    self.memory.save()
+                    user_memory.save()
                     return
                 
                 # Comparar con el penúltimo snapshot
-                changes = self.memory.detect_changes(current_grades)
-                self.memory.save()
+                changes = user_memory.detect_changes(current_grades)
+                user_memory.save()
                 
                 # Enviar resultados
                 if changes:
@@ -676,8 +711,10 @@ También puedes hacer preguntas como:
             await update.message.reply_text(f"❌ Error inesperado: {e}")
             
     async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Comando /stats - Muestra estadísticas."""
-        stats = self.memory.get_statistics()
+        """Comando /stats - Muestra estadísticas del usuario."""
+        user_id = update.effective_user.id
+        user_memory = self._get_user_memory(user_id)
+        stats = user_memory.get_statistics()
         
         message = "📊 *Estadísticas del Sistema*\n\n"
         message += f"📈 Total de snapshots: `{stats['total_snapshots']}`\n"
@@ -687,7 +724,7 @@ También puedes hacer preguntas como:
         
         if stats['total_changes'] > 0:
             message += "\n*Últimos 5 cambios:*\n"
-            recent = self.memory.get_recent_changes(5)
+            recent = user_memory.get_recent_changes(5)
             message += self._format_changes_message(recent)
         
         await update.message.reply_text(message, parse_mode='Markdown')
@@ -795,27 +832,14 @@ También puedes hacer preguntas como:
     def _fetch_home_data(self, username: str, password: str) -> dict:
         """Obtiene datos del perfil del estudiante desde /home/home."""
         try:
-            # Crear sesión y autenticar con credenciales del usuario
-            with UPQScraperSession() as session:
-                # Necesitamos configurar temporalmente las credenciales
-                import config.settings as temp_settings
-                original_user = temp_settings.settings.UPQ_USERNAME
-                original_pass = temp_settings.settings.UPQ_PASSWORD
+            # Crear sesión con credenciales del usuario
+            with UPQScraperSession(username=username, password=password) as session:
+                if not session.login():
+                    self.logger.error("Error de autenticación")
+                    return {}
                 
-                try:
-                    temp_settings.settings.UPQ_USERNAME = username
-                    temp_settings.settings.UPQ_PASSWORD = password
-                    
-                    if not session.login():
-                        self.logger.error("Error de autenticación")
-                        return {}
-                    
-                    # Obtener HTML del perfil
-                    html = session.get_home_data()
-                finally:
-                    # Restaurar credenciales originales
-                    temp_settings.settings.UPQ_USERNAME = original_user
-                    temp_settings.settings.UPQ_PASSWORD = original_pass
+                # Obtener HTML del perfil
+                html = session.get_home_data()
                 
                 soup = BeautifulSoup(html, 'html.parser')
                 
@@ -858,28 +882,15 @@ También puedes hacer preguntas como:
     def _fetch_info_general(self, username: str, password: str) -> str:
         """Obtiene información general completa desde /alumno_informacion_general."""
         try:
-            # Crear sesión y autenticar con credenciales del usuario
-            with UPQScraperSession() as session:
-                # Necesitamos configurar temporalmente las credenciales
-                import config.settings as temp_settings
-                original_user = temp_settings.settings.UPQ_USERNAME
-                original_pass = temp_settings.settings.UPQ_PASSWORD
+            # Crear sesión con credenciales del usuario
+            with UPQScraperSession(username=username, password=password) as session:
+                if not session.login():
+                    self.logger.error("Error de autenticación")
+                    return ""
                 
-                try:
-                    temp_settings.settings.UPQ_USERNAME = username
-                    temp_settings.settings.UPQ_PASSWORD = password
-                    
-                    if not session.login():
-                        self.logger.error("Error de autenticación")
-                        return ""
-                    
-                    # Obtener HTML completo
-                    html = session.get_info_general()
-                    return html
-                finally:
-                    # Restaurar credenciales originales
-                    temp_settings.settings.UPQ_USERNAME = original_user
-                    temp_settings.settings.UPQ_PASSWORD = original_pass
+                # Obtener HTML completo
+                html = session.get_info_general()
+                return html
                 
         except Exception as e:
             self.logger.error(f"Error al obtener información general: {e}")

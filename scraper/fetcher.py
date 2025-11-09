@@ -244,13 +244,19 @@ class UPQFetcher:
 
 class UPQScraperSession:
     """
-    Clase de alto nivel que combina autenticación y fetching.
-    Facilita el uso del sistema completo.
+    Wrapper de alto nivel para scraping del sistema UPQ.
+    Maneja autenticación y fetching de datos.
     """
 
-    def __init__(self):
-        """Inicializa una nueva sesión de scraping."""
-        self.authenticator = UPQAuthenticator()
+    def __init__(self, username: Optional[str] = None, password: Optional[str] = None):
+        """
+        Inicializa una nueva sesión de scraping.
+        
+        Args:
+            username: Matrícula del usuario (opcional, usa .env si no se proporciona)
+            password: Contraseña del usuario (opcional, usa .env si no se proporciona)
+        """
+        self.authenticator = UPQAuthenticator(username=username, password=password)
         self.fetcher: Optional[UPQFetcher] = None
 
     def __enter__(self):

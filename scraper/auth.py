@@ -24,12 +24,21 @@ class UPQAuthenticator:
     Usa requests.Session() para mantener cookies entre peticiones.
     """
 
-    def __init__(self):
-        """Inicializa el autenticador con una nueva sesión."""
+    def __init__(self, username: Optional[str] = None, password: Optional[str] = None):
+        """
+        Inicializa el autenticador con una nueva sesión.
+        
+        Args:
+            username: Usuario UPQ (matrícula). Si es None, usa el del .env
+            password: Contraseña UPQ. Si es None, usa la del .env
+        """
         self.session: requests.Session = requests.Session()
         self.session.headers.update(settings.HEADERS)
         self.is_authenticated: bool = False
         self.inscription_id: Optional[str] = None
+        # Credenciales personalizadas o usar las del settings
+        self.username = username or settings.UPQ_USERNAME
+        self.password = password or settings.UPQ_PASSWORD
 
     def login(self) -> bool:
         """
@@ -43,10 +52,10 @@ class UPQAuthenticator:
         """
         try:
             # Validar credenciales antes de intentar login
-            if not settings.validate():
+            if not self.username or not self.password:
                 raise AuthenticationError("Credenciales no configuradas")
 
-            print(f"🔐 Intentando login como: {settings.UPQ_USERNAME}")
+            print(f"🔐 Intentando login como: {self.username}")
 
             # Primero, obtener el formulario de login para extraer el token CSRF
             print("📋 Obteniendo formulario de login...")
@@ -64,9 +73,12 @@ class UPQAuthenticator:
                 print(f"🔑 Token CSRF obtenido: {csrf_token[:20]}...")
 
             # Preparar payload de login con el token CSRF real
-            payload = settings.get_login_payload()
-            if csrf_token:
-                payload["signin[_csrf_token]"] = csrf_token
+            payload = {
+                "signin[username]": self.username,
+                "signin[password]": self.password,
+                "signin[_csrf_token]": csrf_token,
+                "signin[tipo_usuario]": "1"  # 1 = alumno (campo requerido)
+            }
 
             # Realizar petición POST de login
             response = self.session.post(
@@ -105,8 +117,9 @@ class UPQAuthenticator:
                 # Intentar extraer el ID de inscripción
                 self._extract_inscription_id(response)
 
-                # Si no se detectó, intentar desde el endpoint de inscripciones
-                if not self.inscription_id:
+                # Si no se detectó y NO estamos usando credenciales del .env,
+                # SIEMPRE intentar desde endpoints adicionales
+                if not self.inscription_id or self.username != settings.UPQ_USERNAME:
                     self._try_get_inscription_id()
 
                 return True
@@ -138,38 +151,50 @@ class UPQAuthenticator:
         Returns:
             bool: True si el login fue exitoso.
         """
-        # Verificar cookies de sesión
-        if 'PHPSESSID' in self.session.cookies:
-            # El sistema PHP mantiene sesión con esta cookie
-            return True
+        # CRÍTICO: Si la URL final contiene 'signin', significa que el login falló
+        # y el sistema nos devolvió al formulario de login
+        if 'signin' in response.url:
+            print("❌ Login falló - Aún en página de signin")
+            return False
 
-        # Verificar si hay redirección a página de alumno
-        if 'alumnos.php' in response.url and 'signin' not in response.url:
+        # Verificar si hay redirección a página de alumno (sin signin)
+        if 'alumnos.php' in response.url:
+            print(f"✓ Redirigido a: {response.url}")
             return True
 
         # Verificar en el contenido HTML
         content = response.text.lower()
 
-        # Indicadores de login fallido
-        if any(indicator in content for indicator in [
+        # Indicadores de login fallido - verificar PRIMERO
+        fail_indicators = [
             'usuario o contraseña incorrectos',
             'credenciales inválidas',
             'login failed',
-            'error de autenticación'
-        ]):
+            'error de autenticación',
+            'name="signin[username]"',  # Formulario de login presente
+            'action="/alumnos.php/signin"'  # Formulario de login
+        ]
+        
+        if any(indicator in content for indicator in fail_indicators):
+            print("❌ Login falló - Detectado indicador de fallo en HTML")
             return False
 
         # Indicadores de login exitoso
-        if any(indicator in content for indicator in [
+        success_indicators = [
             'carga académica',
             'calificaciones',
             'bienvenido',
-            'alumno'
-        ]):
+            'cerrar sesión',
+            'horario'
+        ]
+        
+        if any(indicator in content for indicator in success_indicators):
+            print("✓ Login exitoso - Detectado indicador de éxito en HTML")
             return True
 
-        # Si llegamos aquí y tenemos cookies, asumimos éxito
-        return len(self.session.cookies) > 0
+        # Si llegamos aquí, el login probablemente falló
+        print("⚠️ No se pudo determinar el estado del login")
+        return False
 
     def _extract_inscription_id(self, response: requests.Response) -> None:
         """
@@ -178,34 +203,52 @@ class UPQAuthenticator:
         Args:
             response: Respuesta HTTP del login.
         """
-        # Si ya está configurado en settings, usarlo
-        if settings.UPQ_INSCRIPTION_ID:
-            self.inscription_id = settings.UPQ_INSCRIPTION_ID
-            print(f"📋 ID de inscripción configurado: {self.inscription_id}")
-            return
-
-        # Intentar extraer del HTML (puede variar según el sistema)
-        # Esto es un placeholder - se puede mejorar con parseo específico
         content = response.text
 
-        # Buscar patrón común: iid=XXXXXX
+        # Buscar patrón común: iid=XXXXXX en el HTML
         import re
         match = re.search(r'iid=(\d+)', content)
         if match:
             self.inscription_id = match.group(1)
-            print(f"📋 ID de inscripción detectado: {self.inscription_id}")
-        else:
-            print("⚠️  No se pudo detectar automáticamente el ID de inscripción")
-            print("   Configura UPQ_INSCRIPTION_ID en .env si es necesario")
+            print(f"📋 ID de inscripción detectado automáticamente: {self.inscription_id}")
+            return
+        
+        # Si no se encontró en el HTML y estamos usando credenciales del .env,
+        # usar el valor configurado como fallback
+        if self.username == settings.UPQ_USERNAME and settings.UPQ_INSCRIPTION_ID:
+            self.inscription_id = settings.UPQ_INSCRIPTION_ID
+            print(f"📋 ID de inscripción desde configuración (.env): {self.inscription_id}")
+            return
+            
+        print("⚠️  No se pudo detectar automáticamente el ID de inscripción")
+        print("   Se intentará obtener desde otros endpoints...")
 
     def _try_get_inscription_id(self) -> None:
         """
-        Intenta obtener el ID de inscripción desde el endpoint de inscripciones.
+        Intenta obtener el ID de inscripción desde diferentes endpoints.
         """
         try:
-            print("🔍 Intentando obtener ID de inscripción desde endpoint...")
+            print("🔍 Buscando ID de inscripción en la página principal...")
 
-            # Probar endpoint de inscripciones
+            # Primero intentar desde la página principal de alumnos
+            url = f"{settings.UPQ_BASE_URL}/alumnos.php"
+            response = self.session.get(
+                url,
+                timeout=settings.REQUEST_TIMEOUT,
+                verify=settings.VERIFY_SSL
+            )
+
+            if response.status_code == 200:
+                import re
+                # Buscar iid= en el HTML
+                match = re.search(r'iid=(\d+)', response.text)
+                if match:
+                    self.inscription_id = match.group(1)
+                    print(f"✅ ID de inscripción encontrado en página principal: {self.inscription_id}")
+                    return
+
+            # Si no se encontró, probar endpoint de inscripciones
+            print("🔍 Intentando obtener ID de inscripción desde endpoint de inscripciones...")
             url = f"{settings.UPQ_BASE_URL}/alumnos.php/inscripcion"
             response = self.session.get(
                 url,
@@ -219,14 +262,31 @@ class UPQAuthenticator:
                 match = re.search(r'iid=(\d+)', response.text)
                 if match:
                     self.inscription_id = match.group(1)
-                    print(f"✅ ID de inscripción detectado: {self.inscription_id}")
+                    print(f"✅ ID de inscripción detectado desde inscripciones: {self.inscription_id}")
                     return
 
                 # Buscar patrones alternativos
                 match = re.search(r'inscripcion[_-]?id["\']?\s*[:=]\s*["\']?(\d+)', response.text, re.IGNORECASE)
                 if match:
                     self.inscription_id = match.group(1)
-                    print(f"✅ ID de inscripción detectado: {self.inscription_id}")
+                    print(f"✅ ID de inscripción detectado (patrón alternativo): {self.inscription_id}")
+                    return
+            
+            # Si tampoco funcionó, intentar con carga académica
+            print("🔍 Intentando desde carga académica...")
+            url = f"{settings.UPQ_BASE_URL}/alumnos.php/carga-academica"
+            response = self.session.get(
+                url,
+                timeout=settings.REQUEST_TIMEOUT,
+                verify=settings.VERIFY_SSL
+            )
+            
+            if response.status_code == 200:
+                import re
+                match = re.search(r'iid=(\d+)', response.text)
+                if match:
+                    self.inscription_id = match.group(1)
+                    print(f"✅ ID de inscripción encontrado en carga académica: {self.inscription_id}")
                     return
 
         except Exception as e:

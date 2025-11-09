@@ -14,12 +14,14 @@ Sistema profesional de web scraping que proporciona acceso automatizado a la pla
 
 ## ✨ Características Principales
 
-- 🤖 **Integración con Telegram** - Interfaz conversacional para consultar calificaciones remotamente
-- 🔐 **Autenticación Automatizada** - Gestión segura de sesiones con manejo encriptado de credenciales
-- 🎯 **Análisis Inteligente de HTML** - Motor de parsing adaptativo resistente a cambios de la plataforma
+- 🤖 **Integración con Telegram** - Bot conversacional multi-usuario con autenticación personalizada
+- 🔐 **Autenticación Multi-Usuario** - Cada usuario usa sus propias credenciales de forma segura
+- 📁 **Almacenamiento Separado por Usuario** - Datos aislados para cada usuario del bot
+- 🎯 **Detección Automática de ID de Inscripción** - Extracción automática del `iid` para cada usuario
 - 🔔 **Detección de Cambios en Tiempo Real** - Notificaciones instantáneas de actualizaciones de calificaciones
-- 💾 **Almacenamiento Persistente** - Historial completo con snapshots con marca de tiempo en formato JSON
+- 💾 **Almacenamiento Persistente** - Historial completo con snapshots individuales por usuario
 - ⌨️ **Interfaz de Línea de Comandos** - CLI completa para scripting y automatización
+- 📊 **Análisis Académico Avanzado** - Promedio, créditos, estancias, historial y materias atrasadas
 - 🏗️ **Arquitectura Modular** - Separación clara de responsabilidades, lista para integración con API REST
 - 🔒 **Código Type-Safe** - Type hints completos y soporte para análisis estático
 
@@ -103,7 +105,37 @@ python main.py --stats
 python main.py --export backup.json
 ```
 
-#### 📄 Salida en Formato JSON
+#### � Ver Información del Perfil
+
+```bash
+python main.py --info
+```
+
+#### 🎓 Consultar Promedio General
+
+```bash
+python main.py --promedio
+```
+
+#### 📚 Consultar Créditos
+
+```bash
+python main.py --creditos
+```
+
+#### 🏢 Consultar Estancias Profesionales
+
+```bash
+python main.py --estancias
+```
+
+#### 📈 Ver Historial de Promedios
+
+```bash
+python main.py --historial
+```
+
+#### �📄 Salida en Formato JSON
 
 ```bash
 python main.py --json
@@ -121,11 +153,26 @@ python run_bot.py
 
 | Comando | Descripción |
 |---------|-------------|
-| `/start` | Inicializar el bot y mostrar mensaje de bienvenida |
+| `/start` | Inicializar el bot y registrar credenciales personales |
+| `/logout` | Eliminar credenciales y cerrar sesión |
 | `/grades` | Obtener y mostrar calificaciones actuales |
 | `/check` | Verificar actualizaciones de calificaciones |
 | `/stats` | Ver estadísticas del sistema |
+| `/info` | Información del perfil académico |
+| `/promedio` | Consultar promedio general |
+| `/creditos` | Ver créditos cursados y restantes |
+| `/estancias` | Información de estancias profesionales |
+| `/historial` | Historial académico completo |
+| `/materias` | Consultar materias atrasadas |
 | `/help` | Mostrar ayuda de comandos |
+
+**Características del Bot:**
+
+- 🔐 **Autenticación Personalizada**: Cada usuario registra sus propias credenciales
+- 📁 **Datos Aislados**: Almacenamiento separado por usuario
+- 🎯 **Detección Automática de iid**: Extracción automática del ID de inscripción
+- 💬 **Interfaz Natural**: Responde a mensajes en lenguaje natural
+- 🔔 **Notificaciones**: Alertas de cambios en calificaciones
 
 Para documentación detallada del bot, consulta [bot/README.md](bot/README.md)
 

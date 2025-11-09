@@ -14,11 +14,15 @@ Bot profesional de Telegram que proporciona acceso seguro y remoto al sistema ac
 
 ## ✨ Características Principales
 
-- 📊 **Acceso a Calificaciones en Tiempo Real**: Consulta instantánea a través de interfaz conversacional
-- 🔍 **Detección Inteligente de Cambios**: Identificación y reporte automático de actualizaciones
-- 📈 **Análisis Histórico**: Estadísticas completas y análisis de tendencias
-- 🔐 **Autenticación Segura**: Comunicación encriptada de extremo a extremo con Sistema Integral UPQ
-- 💬 **Comandos Intuitivos**: Estructura de comandos en lenguaje natural para facilidad de uso
+- � **Arquitectura Multi-Usuario**: Cada usuario registra sus propias credenciales y mantiene sus datos completamente aislados
+- 🔐 **Autenticación Personalizada**: Cada usuario se autentica con su matrícula y contraseña individual
+- 💾 **Almacenamiento Separado por Usuario**: Sistema de archivos aislado que garantiza privacidad total de datos
+- 🆔 **Detección Automática de ID de Inscripción**: Extracción dinámica del `iid` único de cada estudiante
+- �📊 **Acceso a Calificaciones en Tiempo Real**: Consulta instantánea a través de interfaz conversacional
+- 🔍 **Detección Inteligente de Cambios**: Identificación y reporte automático de actualizaciones en calificaciones
+- 📈 **Análisis Académico Completo**: Promedio general, créditos, estancias profesionales e historial completo
+- 💬 **Comandos Intuitivos**: 12 comandos especializados para acceso completo a información académica
+- � **Privacidad y Seguridad**: Comunicación encriptada de extremo a extremo con Sistema Integral UPQ
 - 🌐 **Disponibilidad 24/7**: Diseñado para operación continua en VPS o infraestructura cloud
 
 ---
@@ -46,13 +50,15 @@ Esto instalará `python-telegram-bot` (v20.7) junto con las dependencias princip
 
 #### ⚙️ Configuración de Variables de Entorno
 
-Agrega tu token del bot al archivo `.env`:
+Agrega el token del bot al archivo `.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
-UPQ_USERNAME=tu_matricula
-UPQ_PASSWORD=tu_contraseña
 ```
+
+**Nota sobre Credenciales de Usuario:**
+
+⚠️ **Ya no es necesario configurar credenciales en `.env`**. El bot ahora soporta multi-usuario donde cada persona registra sus propias credenciales usando el comando `/start`. Las variables `UPQ_USERNAME` y `UPQ_PASSWORD` en `.env` son opcionales y solo se usan como fallback para el primer usuario configurado.
 
 ### ▶️ Ejecutar el Bot
 
@@ -80,21 +86,31 @@ Bot is running. Press Ctrl+C to stop.
 
 ## 📱 Referencia de Comandos
 
-### `/start` - Inicializar Bot
+### `/start` - Registrar Credenciales
 
-Inicializa la sesión del bot y muestra el mensaje de bienvenida con resumen de comandos.
+Registra tus credenciales personales en el sistema. **Cada usuario debe ejecutar este comando primero** para configurar su matrícula y contraseña.
 
-**Respuesta:**
+**Proceso de Registro:**
+
+1. Envía `/start` al bot
+2. El bot te pedirá tu matrícula
+3. Ingresa tu matrícula (ejemplo: `123046244`)
+4. El bot te pedirá tu contraseña
+5. Ingresa tu contraseña del Sistema Integral
+6. ✅ Credenciales guardadas de forma segura
+
+**Respuesta tras Registro Exitoso:**
 
 ```text
-🎓 Bienvenido al Bot de UPQ Sistema Integral
-
-Comandos disponibles:
-/grades - Consultar calificaciones
-/check - Verificar cambios
-/stats - Ver estadísticas
-/help - Ayuda
+✅ Credenciales guardadas correctamente
+Ahora puedes usar los comandos del bot
 ```
+
+**Características del Registro:**
+- 🔐 Credenciales encriptadas y almacenadas localmente
+- 👤 Cada usuario tiene su propio espacio aislado
+- 🆔 ID de inscripción detectado automáticamente
+- 📁 Archivo de datos separado: `storage/users/user_{tu_id}_grades.json`
 
 ### `/grades` - Consultar Calificaciones
 
@@ -159,9 +175,110 @@ Muestra métricas completas del sistema y estadísticas de uso.
 📆 Periodo de monitoreo: 7 días
 ```
 
+### `/logout` - Eliminar Credenciales
+
+Elimina tus credenciales y datos del sistema de forma segura.
+
+**Respuesta:**
+
+```text
+✅ Credenciales eliminadas correctamente
+Usa /start para volver a registrarte
+```
+
+### `/info` - Información del Perfil
+
+Muestra información completa de tu perfil académico.
+
+**Respuesta:**
+
+```text
+👤 INFORMACIÓN DEL PERFIL
+
+Nombre: EMILIANO LEDESMA
+Matrícula: 123046244
+Carrera: INGENIERÍA EN SOFTWARE
+Plan de Estudios: 2019
+```
+
+### `/promedio` - Consultar Promedio General
+
+Calcula y muestra tu promedio general acumulado.
+
+**Respuesta:**
+
+```text
+📊 PROMEDIO GENERAL
+
+Promedio Acumulado: 9.15
+Periodo Actual: SEPTIEMBRE-DICIEMBRE 2025
+```
+
+### `/creditos` - Consultar Créditos
+
+Muestra el balance de créditos cursados y por cursar.
+
+**Respuesta:**
+
+```text
+🎯 CRÉDITOS ACADÉMICOS
+
+Créditos Cursados: 180
+Créditos Restantes: 60
+Porcentaje Completado: 75%
+```
+
+### `/estancias` - Consultar Estancias Profesionales
+
+Lista todas tus estancias profesionales registradas.
+
+**Respuesta:**
+
+```text
+💼 ESTANCIAS PROFESIONALES
+
+Empresa: Tech Company S.A.
+Periodo: MAYO-AGOSTO 2024
+Calificación: 10
+```
+
+### `/historial` - Ver Historial Académico
+
+Muestra tu historial completo de promedios por periodo.
+
+**Respuesta:**
+
+```text
+📚 HISTORIAL ACADÉMICO
+
+SEPTIEMBRE-DICIEMBRE 2024: 9.20
+MAYO-AGOSTO 2024: 9.10
+ENERO-ABRIL 2024: 9.15
+```
+
+### `/materias` - Materias Reprobadas
+
+Lista las materias que necesitan ser recursadas.
+
+**Respuesta (sin materias reprobadas):**
+
+```text
+✅ ¡Excelente! No tienes materias reprobadas
+```
+
+**Respuesta (con materias reprobadas):**
+
+```text
+⚠️ MATERIAS PENDIENTES
+
+📚 CÁLCULO DIFERENCIAL
+Calificación: 5.8
+Periodo: ENERO-ABRIL 2023
+```
+
 ### `/help` - Ayuda de Comandos
 
-Muestra referencia detallada de comandos e instrucciones de uso.
+Muestra referencia completa de todos los comandos disponibles (12 comandos).
 
 ---
 
@@ -173,47 +290,68 @@ Muestra referencia detallada de comandos e instrucciones de uso.
 bot/telegram_bot.py
 │
 ├── 🤖 UPQTelegramBot (Clase Principal)
-│   ├── 📋 Manejadores de Comandos
-│   │   ├── start_command()      # Inicialización del bot
-│   │   ├── help_command()       # Mostrar documentación
+│   │
+│   ├── � Sistema Multi-Usuario
+│   │   ├── _get_user_memory()   # Obtener memoria específica del usuario
+│   │   ├── _load_credentials()  # Cargar credenciales del usuario
+│   │   └── _save_credentials()  # Guardar credenciales encriptadas
+│   │
+│   ├── �📋 Manejadores de Comandos (12 comandos)
+│   │   ├── start_command()      # Registro de credenciales por usuario
+│   │   ├── logout_command()     # Eliminar credenciales del usuario
 │   │   ├── grades_command()     # Consulta de calificaciones
 │   │   ├── check_command()      # Detección de cambios
-│   │   └── stats_command()      # Mostrar estadísticas
+│   │   ├── stats_command()      # Estadísticas del usuario
+│   │   ├── info_command()       # Información del perfil
+│   │   ├── promedio_command()   # Promedio general
+│   │   ├── creditos_command()   # Balance de créditos
+│   │   ├── estancias_command()  # Estancias profesionales
+│   │   ├── historial_command()  # Historial académico
+│   │   ├── materias_command()   # Materias reprobadas
+│   │   └── help_command()       # Documentación completa
 │   │
 │   └── ⚠️ Gestión de Errores
 │       └── error_handler()      # Manejo global de errores
 │
 └── 🔌 Integración de Módulos
     ├── config.settings          # Configuración de entorno
-    ├── scraper.fetcher          # Capa de requests HTTP
+    ├── scraper.fetcher          # Capa de requests HTTP con sesiones por usuario
     ├── scraper.parser           # Motor de parsing HTML
-    ├── scraper.auth             # Gestor de autenticación
-    └── storage.memory           # Capa de persistencia de datos
+    ├── scraper.auth             # Gestor de autenticación con detección automática de iid
+    └── storage.memory           # Capa de persistencia con archivos separados por usuario
 ```
 
-### Flujo de Ejecución
+### Flujo de Ejecución Multi-Usuario
 
 ```mermaid
 graph TB
     A[📱 Usuario envía mensaje] --> B[🤖 Bot recibe comando]
-    B --> C[⚙️ Procesamiento de comando]
-    C --> D[🔐 Autenticación con UPQ]
-    D --> E[🕷️ Scraper obtiene datos]
-    E --> F[📊 Parser analiza HTML]
-    F --> G[💾 Guardar snapshot]
-    G --> H[📝 Formatear respuesta]
-    H --> I[✉️ Enviar mensaje a usuario]
+    B --> C{¿Comando requiere credenciales?}
+    C -->|No| H[📝 Formatear respuesta]
+    C -->|Sí| D[🔍 Cargar credenciales del usuario]
+    D --> E{¿Credenciales encontradas?}
+    E -->|No| F[❌ Solicitar registro /start]
+    E -->|Sí| G[🔐 Autenticación personalizada]
+    G --> I[🆔 Detectar iid del usuario]
+    I --> J[🕷️ Scraper obtiene datos con sesión del usuario]
+    J --> K[📊 Parser analiza HTML]
+    K --> L[💾 Guardar en archivo del usuario]
+    L --> H
+    H --> M[✉️ Enviar mensaje a usuario]
+    F --> M
 ```
 
 **Pasos del proceso:**
 
 1. 📨 **Recepción de Mensaje**: Telegram entrega mensaje del usuario al bot
-2. 🔀 **Procesamiento de Comando**: Bot identifica y enruta comando al manejador apropiado
-3. 🔐 **Autenticación**: Establece sesión segura con Sistema Integral UPQ
-4. 🕷️ **Extracción de Datos**: Scraper obtiene y analiza datos académicos
-5. 💾 **Actualización de Storage**: Guarda snapshot con marca de tiempo para detección de cambios
-6. 📋 **Formateo de Respuesta**: Estructura datos en mensaje amigable para el usuario
-7. ✉️ **Entrega**: Envía respuesta formateada de vuelta al usuario vía Telegram
+2. 🔀 **Procesamiento de Comando**: Bot identifica comando y extrae `user_id` de Telegram
+3. 🔍 **Validación de Credenciales**: Verifica si el usuario tiene credenciales registradas
+4. 🔐 **Autenticación Personalizada**: Cada usuario se autentica con sus propias credenciales
+5. 🆔 **Detección de ID de Inscripción**: Sistema detecta automáticamente el `iid` único del estudiante
+6. 🕷️ **Extracción de Datos**: Scraper obtiene datos usando la sesión autenticada del usuario
+7. 💾 **Actualización de Storage**: Guarda snapshot en archivo específico del usuario (`storage/users/user_{id}_grades.json`)
+8. 📋 **Formateo de Respuesta**: Estructura datos en mensaje personalizado
+9. ✉️ **Entrega**: Envía respuesta de vuelta al usuario vía Telegram
 
 ### Estrategia de Manejo de Errores
 
@@ -236,21 +374,31 @@ Gestión completa de errores para garantizar confiabilidad:
 
 | Aspecto | Implementación |
 |---------|----------------|
-| 🔐 **Almacenamiento de Credenciales** | Bot lee credenciales de `.env`, nunca almacena contraseñas |
+| 🔐 **Almacenamiento de Credenciales** | Cada usuario registra credenciales mediante conversación privada con el bot |
+| 💾 **Aislamiento de Datos** | Sistema de archivos separado por usuario: `storage/users/user_{id}_grades.json` |
 | 🔒 **Encriptación de Transporte** | Todas las comunicaciones con Telegram encriptadas vía HTTPS |
-| 💾 **Gestión de Sesión** | Tokens de sesión mantenidos en memoria, limpiados al apagar |
-| 📝 **Logging de Errores** | Logs sanitizados que excluyen información sensible |
-| 👤 **Control de Acceso** | Diseñado para operación de un solo usuario, no multi-tenant |
+| � **Sesiones Individuales** | Cada usuario mantiene su propia sesión HTTP independiente |
+| 🆔 **ID de Inscripción Único** | Detección automática del `iid` personal de cada estudiante |
+| 📝 **Logging de Errores** | Logs sanitizados que excluyen información sensible y credenciales |
+| � **Sin Datos Compartidos** | Arquitectura multi-usuario con privacidad total entre usuarios |
 
 ### Mejores Prácticas de Seguridad
 
-- ✅ Nunca compartir el token del bot públicamente
-- ✅ Restringir acceso del bot solo a usuarios autorizados
-- ✅ Rotar credenciales regularmente
+**Para Administradores del Bot:**
+- ✅ Nunca compartir el `TELEGRAM_BOT_TOKEN` públicamente
+- ✅ Agregar `storage/users/` al `.gitignore` para proteger datos de usuarios
 - ✅ Monitorear logs del bot para actividad sospechosa
-- ✅ Usar variables de entorno para todos los secretos
-- ⛔ No exponer el bot en repositorios públicos
+- ✅ Mantener el servidor actualizado con parches de seguridad
+- ⛔ No exponer el token del bot en repositorios públicos
 - ⛔ No compartir capturas de pantalla con tokens visibles
+
+**Para Usuarios del Bot:**
+- ✅ Usar contraseñas seguras del Sistema Integral UPQ
+- ✅ No compartir conversaciones del bot con terceros
+- ✅ Usar el comando `/logout` antes de desinstalar Telegram
+- ✅ Verificar que estás hablando con el bot oficial
+- ⛔ No proporcionar credenciales a bots desconocidos
+- ⛔ No usar el bot desde dispositivos públicos o compartidos
 
 ## Deployment Options
 
@@ -470,10 +618,17 @@ logging.basicConfig(level=logging.ERROR)
 
 ## Roadmap
 
+### Mejoras Completadas ✅
+
+- [x] **Multi-User Support**: Arquitectura multi-usuario con almacenamiento separado
+- [x] **Detección Automática de iid**: Extracción dinámica del ID de inscripción
+- [x] **Sistema de Credenciales por Usuario**: Cada usuario registra sus propias credenciales
+- [x] **Comandos Académicos Avanzados**: Promedio, créditos, estancias, historial, materias
+- [x] **Aislamiento de Datos**: Sistema de archivos completamente separado por usuario
+
 ### Planned Enhancements
 
 - [ ] **Automated Push Notifications**: Scheduled grade checks with proactive alerts
-- [ ] **Multi-User Support**: Secure multi-tenant architecture for group deployment
 - [ ] **Admin Dashboard**: Web-based management interface for monitoring
 - [ ] **Configurable Intervals**: User-defined check frequencies
 - [ ] **PDF Grade Reports**: Export academic data to formatted PDF documents
@@ -481,6 +636,7 @@ logging.basicConfig(level=logging.ERROR)
 - [ ] **Custom Alerts**: Configurable notification rules and filters
 - [ ] **Grade Predictions**: ML-based grade forecasting
 - [ ] **Study Reminders**: Intelligent deadline tracking and notifications
+- [ ] **Backup/Restore de Credenciales**: Exportar e importar configuración del usuario
 
 ### Performance Improvements
 
