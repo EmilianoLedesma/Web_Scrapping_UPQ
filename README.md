@@ -361,11 +361,6 @@ def detect_changes(
     """Detectar cambios entre snapshots."""
     pass
 ```
-
-## 📜 Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
-
 ---
 
 ## ⚖️ Aviso Legal

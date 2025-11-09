@@ -763,7 +763,7 @@ Puedes preguntarme:
                 
                 message = "📋 BOLETA DE CALIFICACIONES\n"
                 message += "═" * 40 + "\n\n"
-                message += "Esta es tu boleta de calificaciones del periodo actual con el detalle de todas tus materias.\n\n"
+                message += "Boleta de calificaciones del periodo actual.\n\n"
                 
                 tables = soup.find_all('table')
                 
@@ -772,8 +772,13 @@ Puedes preguntarme:
                     for table in tables[:1]:
                         rows = table.find_all('tr')
                         headers = []
+                        materia_count = 0
+                        MAX_MATERIAS = 15  # Limitar a 15 materias
                         
-                        for i, row in enumerate(rows[:25]):
+                        for i, row in enumerate(rows):
+                            if materia_count >= MAX_MATERIAS:
+                                break
+                                
                             cols = row.find_all(['th', 'td'])
                             if not cols:
                                 continue
@@ -786,13 +791,18 @@ Puedes preguntarme:
                             # Procesar filas de datos
                             data = [col.get_text(strip=True) for col in cols]
                             if len(data) > 0:
+                                materia_count += 1
                                 message += "─" * 40 + "\n"
-                                # Mostrar cada campo con su valor
-                                for j, value in enumerate(data):
+                                # Mostrar solo los campos principales
+                                for j, value in enumerate(data[:6]):  # Limitar a 6 campos
                                     if j < len(headers) and value:
                                         label = headers[j] if j < len(headers) else f"Campo {j+1}"
                                         message += f"{label}: {value}\n"
                                 message += "\n"
+                        
+                        # Verificar si el mensaje es muy largo
+                        if len(message) > 3800:
+                            message = message[:3800] + "\n\n... (mensaje truncado)\n"
                     
                     await update.message.reply_text(message)
                 else:
@@ -984,7 +994,7 @@ Tutoría:
                 
                 message = "💰 HISTORIAL DE PAGOS\n"
                 message += "═" * 40 + "\n\n"
-                message += "Este es el registro de todos los pagos que has realizado a la universidad.\n\n"
+                message += "Registro de tus últimos pagos a la universidad.\n\n"
                 
                 tables = soup.find_all('table')
                 
@@ -993,8 +1003,12 @@ Tutoría:
                         rows = table.find_all('tr')
                         headers = []
                         pago_count = 0
+                        MAX_PAGOS = 10  # Limitar a 10 pagos más recientes
                         
-                        for i, row in enumerate(rows[:20]):
+                        for i, row in enumerate(rows):
+                            if pago_count >= MAX_PAGOS:
+                                break
+                                
                             cols = row.find_all(['th', 'td'])
                             if not cols:
                                 continue
@@ -1011,8 +1025,8 @@ Tutoría:
                                 message += f"▼ PAGO #{pago_count}\n"
                                 message += "─" * 40 + "\n"
                                 
-                                # Mostrar cada campo con su valor
-                                for j, value in enumerate(data):
+                                # Mostrar solo los campos más importantes (incluyendo Monto que es el campo 6)
+                                for j, value in enumerate(data[:6]):  # Limitar a 6 campos para incluir Monto
                                     if j < len(headers) and value:
                                         label = headers[j] if j < len(headers) else f"Campo {j+1}"
                                         message += f"{label}: {value}\n"
@@ -1020,7 +1034,12 @@ Tutoría:
                         
                         if pago_count > 0:
                             message += "═" * 40 + "\n"
-                            message += f"Total de pagos registrados: {pago_count}\n"
+                            message += f"Mostrando los {pago_count} pagos más recientes\n"
+                            
+                            # Verificar si el mensaje es muy largo
+                            if len(message) > 3800:  # Dejar margen antes del límite de 4096
+                                message = message[:3800] + "\n\n... (mensaje truncado)\n"
+                                message += "El historial completo está muy extenso."
                     
                     await update.message.reply_text(message)
                 else:
@@ -1157,7 +1176,7 @@ Tutoría:
                 
                 message = "📆 CALENDARIO ACADÉMICO\n"
                 message += "═" * 40 + "\n\n"
-                message += "Este es el calendario con las fechas importantes del periodo académico actual.\n\n"
+                message += "Fechas importantes del periodo académico.\n\n"
                 
                 tables = soup.find_all('table')
                 
@@ -1166,8 +1185,12 @@ Tutoría:
                         rows = table.find_all('tr')
                         headers = []
                         evento_count = 0
+                        MAX_EVENTOS = 12  # Limitar a 12 eventos
                         
-                        for i, row in enumerate(rows[:25]):
+                        for i, row in enumerate(rows):
+                            if evento_count >= MAX_EVENTOS:
+                                break
+                                
                             cols = row.find_all(['th', 'td'])
                             if not cols:
                                 continue
@@ -1184,8 +1207,8 @@ Tutoría:
                                 message += f"📅 EVENTO #{evento_count}\n"
                                 message += "─" * 40 + "\n"
                                 
-                                # Mostrar cada campo con su valor
-                                for j, value in enumerate(data):
+                                # Mostrar solo los campos más importantes
+                                for j, value in enumerate(data[:4]):  # Limitar a 4 campos
                                     if j < len(headers) and value:
                                         label = headers[j] if j < len(headers) else f"Campo {j+1}"
                                         message += f"{label}: {value}\n"
@@ -1193,7 +1216,11 @@ Tutoría:
                         
                         if evento_count > 0:
                             message += "═" * 40 + "\n"
-                            message += f"Total de eventos: {evento_count}\n"
+                            message += f"Mostrando {evento_count} eventos próximos\n"
+                            
+                            # Verificar si el mensaje es muy largo
+                            if len(message) > 3800:
+                                message = message[:3800] + "\n\n... (mensaje truncado)\n"
                     
                     await update.message.reply_text(message)
                 else:
