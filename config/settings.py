@@ -5,7 +5,7 @@ Carga variables de entorno desde .env y proporciona configuración global.
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env
@@ -15,8 +15,8 @@ ENV_FILE = BASE_DIR / ".env"
 if ENV_FILE.exists():
     load_dotenv(ENV_FILE)
 else:
-    print(f"⚠️  Advertencia: No se encontró el archivo .env en {BASE_DIR}")
-    print("   Crea un archivo .env basado en .env.example")
+    print(f"[WARN] Advertencia: No se encontró el archivo .env en {BASE_DIR}")
+    print("       Crea un archivo .env basado en .env.example")
 
 
 class Settings:
@@ -50,7 +50,29 @@ class Settings:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
-    VERIFY_SSL: bool = os.getenv("VERIFY_SSL", "true").lower() == "true"
+
+    # Ruta opcional al bundle de certificados personalizado (workaround TLS)
+    _DEFAULT_CA_BUNDLE = BASE_DIR / "notes" / "sectigo_intermedio.pem"
+    SSL_CA_BUNDLE_PATH: Optional[str] = os.getenv("SSL_CA_BUNDLE_PATH")
+
+    if SSL_CA_BUNDLE_PATH:
+        path_candidate = Path(SSL_CA_BUNDLE_PATH)
+        if not path_candidate.is_absolute():
+            path_candidate = BASE_DIR / path_candidate
+        if path_candidate.exists():
+            SSL_CA_BUNDLE_PATH = str(path_candidate)
+        else:
+            print(f"[WARN] Advertencia: El bundle SSL personalizado no existe: {path_candidate}")
+            SSL_CA_BUNDLE_PATH = None
+    elif _DEFAULT_CA_BUNDLE.exists():
+        SSL_CA_BUNDLE_PATH = str(_DEFAULT_CA_BUNDLE)
+
+    _VERIFY_SSL_RAW = os.getenv("VERIFY_SSL", "true").strip().lower()
+    VERIFY_SSL: Union[bool, str]
+    if SSL_CA_BUNDLE_PATH:
+        VERIFY_SSL = SSL_CA_BUNDLE_PATH
+    else:
+        VERIFY_SSL = _VERIFY_SSL_RAW not in {"false", "0", "no", "off"}
 
     # Configuración de Storage
     STORAGE_PATH: Path = BASE_DIR / os.getenv(
@@ -76,8 +98,8 @@ class Settings:
             bool: True si las credenciales están configuradas, False en caso contrario.
         """
         if not cls.UPQ_USERNAME or not cls.UPQ_PASSWORD:
-            print("❌ Error: Credenciales no configuradas")
-            print("   Configura UPQ_USERNAME y UPQ_PASSWORD en el archivo .env")
+            print("[ERROR] Credenciales no configuradas")
+            print("        Configura UPQ_USERNAME y UPQ_PASSWORD en el archivo .env")
             return False
         return True
 

@@ -24,7 +24,7 @@ def fetch_ajax_endpoint(authenticator: UPQAuthenticator, endpoint: str, name: st
     url = f"{settings.UPQ_BASE_URL}{endpoint}?_={timestamp}"
     
     print(f"\n{'='*80}")
-    print(f"📥 Explorando: {name}")
+    print(f"[INFO] Explorando: {name}")
     print(f"   URL: {url}")
     print('='*80)
     
@@ -47,14 +47,14 @@ def fetch_ajax_endpoint(authenticator: UPQAuthenticator, endpoint: str, name: st
         
         response.raise_for_status()
         
-        print(f"✅ Status: {response.status_code}")
+        print(f"[OK] Status: {response.status_code}")
         print(f"   Content-Type: {response.headers.get('Content-Type')}")
         print(f"   Tamaño: {len(response.text)} bytes")
         
         return response.text
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERROR] Error: {e}")
         return ""
 
 
@@ -80,7 +80,7 @@ def analyze_html_deep(html: str, name: str) -> dict:
     
     # Analizar tablas
     tables = soup.find_all('table')
-    print(f"\n📊 TABLAS ENCONTRADAS: {len(tables)}")
+    print(f"\n[INFO] Tablas encontradas: {len(tables)}")
     
     for i, table in enumerate(tables):
         table_info = {
@@ -110,7 +110,7 @@ def analyze_html_deep(html: str, name: str) -> dict:
         analysis['tables'].append(table_info)
         
         # Imprimir info de tabla
-        print(f"\n  📋 Tabla {i+1}:")
+        print(f"\n  [INFO] Tabla {i+1}:")
         if table_info['id']:
             print(f"     ID: {table_info['id']}")
         if table_info['headers']:
@@ -126,7 +126,7 @@ def analyze_html_deep(html: str, name: str) -> dict:
     
     # Analizar formularios
     forms = soup.find_all('form')
-    print(f"\n📝 FORMULARIOS ENCONTRADOS: {len(forms)}")
+    print(f"\n[INFO] Formularios encontrados: {len(forms)}")
     
     for i, form in enumerate(forms):
         form_info = {
@@ -149,7 +149,7 @@ def analyze_html_deep(html: str, name: str) -> dict:
         
         analysis['forms'].append(form_info)
         
-        print(f"\n  📝 Formulario {i+1}:")
+        print(f"\n  [INFO] Formulario {i+1}:")
         print(f"     Action: {form_info['action']}")
         print(f"     Method: {form_info['method']}")
         print(f"     Inputs: {len(form_info['inputs'])}")
@@ -158,7 +158,7 @@ def analyze_html_deep(html: str, name: str) -> dict:
     
     # Analizar selects (dropdowns)
     selects = soup.find_all('select')
-    print(f"\n🔽 SELECTORES (DROPDOWNS): {len(selects)}")
+    print(f"\n[INFO] Selectores (dropdowns): {len(selects)}")
     
     for i, select in enumerate(selects):
         select_info = {
@@ -176,7 +176,7 @@ def analyze_html_deep(html: str, name: str) -> dict:
         
         analysis['selects'].append(select_info)
         
-        print(f"\n  🔽 Select {i+1}:")
+        print(f"\n  [INFO] Select {i+1}:")
         print(f"     Name: {select_info['name']}")
         print(f"     ID: {select_info['id']}")
         print(f"     Opciones: {len(select_info['options'])}")
@@ -194,19 +194,19 @@ def analyze_html_deep(html: str, name: str) -> dict:
                 interesting_links.append({'href': href, 'text': text})
     
     analysis['links'] = interesting_links[:20]
-    print(f"\n🔗 ENLACES INTERESANTES: {len(interesting_links)}")
+    print(f"\n[INFO] Enlaces interesantes: {len(interesting_links)}")
     for link in interesting_links[:10]:
         print(f"   - {link['text']}: {link['href']}")
     
     # Scripts
     scripts = soup.find_all('script')
     analysis['scripts_count'] = len(scripts)
-    print(f"\n📜 SCRIPTS: {len(scripts)}")
+    print(f"\n[INFO] Scripts: {len(scripts)}")
     
     # Divs con ID
     divs_with_id = soup.find_all('div', id=True)
     analysis['divs_with_id'] = [{'id': d.get('id'), 'class': d.get('class')} for d in divs_with_id]
-    print(f"\n📦 DIVS CON ID: {len(divs_with_id)}")
+    print(f"\n[INFO] Divs con ID: {len(divs_with_id)}")
     for div in divs_with_id[:10]:
         print(f"   - ID: {div.get('id')}, Class: {div.get('class')}")
     
@@ -219,7 +219,7 @@ def analyze_html_deep(html: str, name: str) -> dict:
         })
     
     if fieldsets:
-        print(f"\n🏷️  FIELDSETS: {len(fieldsets)}")
+        print(f"\n[INFO] Fieldsets: {len(fieldsets)}")
         for fs_info in analysis['fieldsets']:
             print(f"   - {fs_info['legend']}")
     
@@ -229,18 +229,18 @@ def analyze_html_deep(html: str, name: str) -> dict:
 def main():
     """Función principal."""
     print("=" * 80)
-    print("🔍 EXPLORADOR PROFUNDO: DESEMPEÑO ESCOLAR")
+    print("[INFO] EXPLORADOR PROFUNDO: DESEMPEÑO ESCOLAR")
     print("=" * 80)
     
     # Autenticar
-    print("\n🔐 Autenticando...")
+    print("\n[INFO] Autenticando...")
     authenticator = UPQAuthenticator()
     
     if not authenticator.login():
-        print("❌ Error de autenticación")
+        print("[ERROR] Error de autenticación")
         return
     
-    print("✅ Autenticación exitosa")
+    print("[OK] Autenticación exitosa")
     
     # Endpoints a explorar
     endpoints = [
@@ -266,14 +266,14 @@ def main():
             # Guardar
             with open(endpoint['file'], 'w', encoding='utf-8') as f:
                 f.write(html)
-            print(f"\n💾 Guardado en: {endpoint['file']}")
+            print(f"\n[INFO] Guardado en: {endpoint['file']}")
             
             # Analizar
             analysis = analyze_html_deep(html, endpoint['name'])
             all_analysis.append(analysis)
             
             # Preview
-            print(f"\n📄 PREVIEW (primeros 600 caracteres):")
+            print(f"\n[INFO] Preview (primeros 600 caracteres):")
             print("-" * 80)
             preview = html[:600].replace('\n', ' ').replace('\r', '')
             print(preview + "...")
@@ -289,11 +289,11 @@ def main():
         json.dump(report, f, indent=2, ensure_ascii=False)
     
     print("\n" + "=" * 80)
-    print("📊 RESUMEN FINAL")
+    print("[INFO] RESUMEN FINAL")
     print("=" * 80)
     
     for analysis in all_analysis:
-        print(f"\n🔹 {analysis['name']}")
+        print(f"\n[INFO] {analysis['name']}")
         print(f"   Tamaño: {analysis['size']} bytes")
         print(f"   Tablas: {len(analysis['tables'])}")
         print(f"   Formularios: {len(analysis['forms'])}")
@@ -303,8 +303,8 @@ def main():
         print(f"   Divs con ID: {len(analysis['divs_with_id'])}")
         print(f"   Fieldsets: {len(analysis['fieldsets'])}")
     
-    print(f"\n💾 Reporte técnico completo: desempeno_escolar_report.json")
-    print("\n✅ Exploración profunda completada")
+    print(f"\n[INFO] Reporte técnico completo: desempeno_escolar_report.json")
+    print("\n[OK] Exploración profunda completada")
     
     # Cerrar sesión
     authenticator.logout()

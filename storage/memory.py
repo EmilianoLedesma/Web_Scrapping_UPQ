@@ -47,10 +47,10 @@ class GradesMemory:
             try:
                 with open(self.storage_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    print(f"📂 Datos cargados desde: {self.storage_path}")
+                    print(f"[INFO] Datos cargados desde: {self.storage_path}")
                     return data
             except json.JSONDecodeError as e:
-                print(f"⚠️  Error al leer {self.storage_path}: {e}")
+                print(f"[WARN] Error al leer {self.storage_path}: {e}")
                 print("   Inicializando nueva estructura de datos")
 
         # Inicializar estructura vacía
@@ -70,7 +70,7 @@ class GradesMemory:
         try:
             with open(self.storage_path, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
-            print(f"💾 Datos guardados en: {self.storage_path}")
+            print(f"[INFO] Datos guardados en: {self.storage_path}")
         except Exception as e:
             raise StorageError(f"Error al guardar datos: {str(e)}")
 
@@ -93,7 +93,7 @@ class GradesMemory:
         if len(self.data["snapshots"]) > 50:
             self.data["snapshots"] = self.data["snapshots"][-50:]
 
-        print(f"📸 Snapshot guardado: {snapshot['timestamp']}")
+        print(f"[INFO] Snapshot guardado: {snapshot['timestamp']}")
 
     def get_last_snapshot(self) -> Optional[Dict[str, Any]]:
         """
@@ -119,7 +119,7 @@ class GradesMemory:
         last_snapshot = self.get_last_snapshot()
 
         if not last_snapshot:
-            print("ℹ️  No hay snapshot previo - Todos los datos son nuevos")
+            print("[INFO] No hay snapshot previo - Todos los datos son nuevos")
             return []
 
         old_grades = last_snapshot.get("data", {})
@@ -219,7 +219,7 @@ class GradesMemory:
             "changes_detected": []
         }
         self.save()
-        print("🗑️  Historial limpiado")
+        print("[INFO] Historial limpiado")
 
     def export_to_json(self, filepath: str) -> None:
         """
@@ -231,7 +231,7 @@ class GradesMemory:
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
-            print(f"📤 Datos exportados a: {filepath}")
+            print(f"[INFO] Datos exportados a: {filepath}")
         except Exception as e:
             raise StorageError(f"Error al exportar datos: {str(e)}")
 
@@ -255,7 +255,7 @@ class GradesMemory:
         lines.append("")
 
         for materia in grades_data.get("materias", []):
-            lines.append(f"📚 {materia['nombre']}")
+            lines.append(f"Materia: {materia['nombre']}")
             if materia.get('profesor'):
                 lines.append(f"   Profesor: {materia['profesor']}")
             if materia.get('grupo'):
@@ -291,7 +291,7 @@ class GradesMemory:
             String con los cambios formateados.
         """
         if not changes:
-            return "✅ No hay cambios detectados"
+            return "[OK] No hay cambios detectados"
 
         lines = []
         lines.append("=" * 80)
@@ -303,7 +303,7 @@ class GradesMemory:
             tipo = change.get("tipo", "desconocido")
 
             if tipo == "materia_nueva":
-                lines.append(f"🆕 Nueva materia: {change['materia']}")
+                lines.append(f"[NUEVO] Nueva materia: {change['materia']}")
 
             elif tipo == "calificacion_actualizada":
                 materia = change['materia']
@@ -314,8 +314,8 @@ class GradesMemory:
                 anterior_str = str(anterior) if anterior is not None else "--"
                 nueva_str = str(nueva)
 
-                lines.append(f"📝 {materia}")
-                lines.append(f"   {parcial}: {anterior_str} → {nueva_str}")
+                lines.append(f"[CAMBIO] {materia}")
+                lines.append(f"   {parcial}: {anterior_str} -> {nueva_str}")
                 lines.append(f"   Timestamp: {change['timestamp']}")
 
             lines.append("")

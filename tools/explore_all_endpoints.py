@@ -28,9 +28,9 @@ def fetch_ajax_endpoint(authenticator: UPQAuthenticator, endpoint: str, name: st
         url = f"{settings.UPQ_BASE_URL}{endpoint}?_={timestamp}"
     
     print(f"\n{'='*80}")
-    print(f"📥 {name}")
+    print(f"[INFO] {name}")
     print(f"   {url}")
-    print('='*80)
+    print('=' * 80)
     
     # Headers AJAX
     ajax_headers = {
@@ -59,12 +59,12 @@ def fetch_ajax_endpoint(authenticator: UPQAuthenticator, endpoint: str, name: st
             'size': len(response.text)
         }
         
-        print(f"✅ {response.status_code} | {info['content_type']} | {info['size']} bytes")
+        print(f"[OK] {response.status_code} | {info['content_type']} | {info['size']} bytes")
         
         return response.text, info
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERROR] Error: {e}")
         return "", {'name': name, 'url': url, 'status': 'ERROR', 'error': str(e)}
 
 
@@ -167,10 +167,10 @@ def print_analysis(analysis: dict):
     """Imprime análisis de forma legible."""
     
     if analysis.get('empty'):
-        print(f"⚠️  {analysis['name']}: SIN CONTENIDO")
+        print(f"[WARN] {analysis['name']}: SIN CONTENIDO")
         return
     
-    print(f"\n📊 {analysis['name']}")
+    print(f"\n[INFO] {analysis['name']}")
     print(f"   Tamaño: {analysis['size']} bytes")
     print(f"   Tablas: {len(analysis.get('tables', []))}")
     print(f"   Formularios: {len(analysis.get('forms', []))}")
@@ -179,7 +179,7 @@ def print_analysis(analysis: dict):
     
     # Detalles de tablas
     for table in analysis.get('tables', [])[:5]:
-        print(f"\n   📋 Tabla {table['index'] + 1}: {table['rows_count']} filas")
+        print(f"\n   [INFO] Tabla {table['index'] + 1}: {table['rows_count']} filas")
         if table['headers']:
             print(f"      Headers: {table['headers']}")
         if table['sample']:
@@ -189,7 +189,7 @@ def print_analysis(analysis: dict):
     
     # Selectores importantes
     for sel in analysis.get('selects', [])[:3]:
-        print(f"\n   🔽 {sel['name'] or sel['id']}: {len(sel['options'])} opciones")
+        print(f"\n   [INFO] {sel['name'] or sel['id']}: {len(sel['options'])} opciones")
         for opt in sel['options'][:5]:
             print(f"      - {opt['value']}: {opt['text']}")
 
@@ -198,97 +198,97 @@ def main():
     """Explorador completo."""
     
     print("=" * 80)
-    print("🔍 EXPLORADOR COMPLETO DE ENDPOINTS SII")
+    print("[INFO] EXPLORADOR COMPLETO DE ENDPOINTS SII")
     print("=" * 80)
     
     # Autenticar
-    print("\n🔐 Autenticando...")
+    print("\n[INFO] Autenticando...")
     authenticator = UPQAuthenticator()
     
     if not authenticator.login():
-        print("❌ Error de autenticación")
+        print("[ERROR] Error de autenticación")
         return
     
-    print("✅ Autenticación exitosa")
+    print("[OK] Autenticación exitosa")
     
     # Todos los endpoints a explorar
     endpoints = [
         # === YA EXPLORADOS (RE-VERIFICAR) ===
         {
             'path': '/alumnos.php/home/home',
-            'name': '🏠 HOME - Perfil Principal',
+            'name': 'HOME - Perfil Principal',
             'file': 'debug_home.html'
         },
         {
             'path': '/alumnos.php/alumno_informacion_general',
-            'name': '🎓 INFORMACIÓN GENERAL - Trayectoria Completa',
+            'name': 'INFORMACIÓN GENERAL - Trayectoria Completa',
             'file': 'debug_alumno_info_general.html',
             'params': {'mid': '16746'}
         },
         {
             'path': '/alumnos.php/calificaciones',
-            'name': '📚 CALIFICACIONES - Kárdex Completo',
+            'name': 'CALIFICACIONES - Kárdex Completo',
             'file': 'debug_calificaciones.html'
         },
         {
             'path': '/alumnos.php/boleta-calificaciones',
-            'name': '📄 BOLETA - Calificaciones Detalladas',
+            'name': 'BOLETA - Calificaciones Detalladas',
             'file': 'debug_boleta_calificaciones.html'
         },
         
         # === NUEVOS ENDPOINTS DEL ARCHIVO MD ===
         {
             'path': '/alumnos.php/pagos',
-            'name': '💰 PAGOS - Historial de Pagos',
+            'name': 'PAGOS - Historial de Pagos',
             'file': 'debug_pagos_historial.html'
         },
         {
             'path': '/alumnos.php/pagos-en-proceso',
-            'name': '⏳ PAGOS EN PROCESO',
+            'name': 'PAGOS EN PROCESO',
             'file': 'debug_pagos_proceso.html'
         },
         {
             'path': '/alumnos.php/controlpagos/pagosEnAdeudos',
-            'name': '❗ PAGOS EN ADEUDO',
+            'name': 'PAGOS EN ADEUDO',
             'file': 'debug_pagos_adeudos.html'
         },
         {
             'path': '/alumnos.php/documentos-en-proceso',
-            'name': '📋 DOCUMENTOS EN PROCESO',
+            'name': 'DOCUMENTOS EN PROCESO',
             'file': 'debug_documentos_proceso.html'
         },
         {
             'path': '/alumnos.php/inscripcion',
-            'name': '📝 INSCRIPCIÓN - Seguimiento Cuatrimestral',
+            'name': 'INSCRIPCIÓN - Seguimiento Cuatrimestral',
             'file': 'debug_inscripcion.html'
         },
         {
             'path': '/alumnos.php/carga-academica',
-            'name': '📚 CARGA ACADÉMICA',
+            'name': 'CARGA ACADÉMICA',
             'file': 'debug_carga_academica.html',
             'params': {'iid': '164456'}
         },
         {
             'path': '/alumnos.php/horario-materias',
-            'name': '🕐 HORARIO DE MATERIAS',
+            'name': 'HORARIO DE MATERIAS',
             'file': 'debug_horario_materias.html',
             'params': {'iid': '164456'}
         },
         {
             'path': '/alumnos.php/seguimiento-cuatrimestral',
-            'name': '📊 SEGUIMIENTO CUATRIMESTRAL',
+            'name': 'SEGUIMIENTO CUATRIMESTRAL',
             'file': 'debug_seguimiento_cuatrimestral.html'
         },
         
         # === ENDPOINTS ADICIONALES (de exploraciones previas) ===
         {
             'path': '/alumnos.php/servicios',
-            'name': '🛠️ SERVICIOS',
+            'name': 'SERVICIOS',
             'file': 'debug_servicios.html'
         },
         {
             'path': '/alumnos.php/historial-academico',
-            'name': '📖 HISTORIAL ACADÉMICO',
+            'name': 'HISTORIAL ACADÉMICO',
             'file': 'debug_historial_academico.html'
         },
     ]
@@ -312,7 +312,7 @@ def main():
             # Guardar HTML
             with open(endpoint['file'], 'w', encoding='utf-8') as f:
                 f.write(html)
-            print(f"💾 → {endpoint['file']}")
+            print(f"[INFO] Archivo guardado: {endpoint['file']}")
             
             # Analizar
             analysis = analyze_deep(html, endpoint['name'])
@@ -341,23 +341,23 @@ def main():
     
     # Resumen final
     print("\n" + "=" * 80)
-    print("📊 RESUMEN FINAL DE EXPLORACIÓN COMPLETA")
+    print("[INFO] RESUMEN FINAL DE EXPLORACIÓN COMPLETA")
     print("=" * 80)
-    print(f"\n✅ Endpoints explorados: {report['total_endpoints']}")
-    print(f"✅ Exitosos: {report['successful']}")
-    print(f"❌ Fallidos: {report['failed']}")
+    print(f"\n[INFO] Endpoints explorados: {report['total_endpoints']}")
+    print(f"[OK] Exitosos: {report['successful']}")
+    print(f"[WARN] Fallidos: {report['failed']}")
     
-    print("\n🔍 ENDPOINTS CON DATOS:")
+    print("\n[INFO] ENDPOINTS CON DATOS:")
     for analysis in all_analysis:
         if not analysis.get('empty'):
             tables = len(analysis.get('tables', []))
             forms = len(analysis.get('forms', []))
             selects = len(analysis.get('selects', []))
-            print(f"\n  {analysis['name']}")
-            print(f"    📋 {tables} tablas | 📝 {forms} formularios | 🔽 {selects} selectores")
+        print(f"\n  {analysis['name']}")
+        print(f"    Tablas: {tables} | Formularios: {forms} | Selectores: {selects}")
     
-    print(f"\n💾 Reporte completo: exploracion_completa_sii.json")
-    print("\n✅ Exploración completa terminada")
+    print(f"\n[INFO] Reporte completo: exploracion_completa_sii.json")
+    print("\n[OK] Exploración completa terminada")
     
     authenticator.logout()
 

@@ -24,7 +24,7 @@ def fetch_student_general_info(authenticator: UPQAuthenticator) -> str:
     
     url = f"{settings.UPQ_BASE_URL}/alumnos.php/alumno_informacion_general?mid={mid}&_={timestamp}"
     
-    print(f"📥 Obteniendo información general del alumno...")
+    print("[INFO] Obteniendo información general del alumno...")
     print(f"   URL: {url}")
     
     # Headers AJAX como los que mostraste
@@ -46,32 +46,32 @@ def fetch_student_general_info(authenticator: UPQAuthenticator) -> str:
         
         response.raise_for_status()
         
-        print(f"✅ Respuesta recibida: {response.status_code}")
+        print(f"[OK] Respuesta recibida: {response.status_code}")
         print(f"   Content-Type: {response.headers.get('Content-Type')}")
         print(f"   Tamaño: {len(response.text)} bytes")
         
         return response.text
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERROR] Error: {e}")
         return ""
 
 
 def main():
     """Función principal."""
     print("=" * 80)
-    print("🔍 EXPLORADOR DE INFORMACIÓN GENERAL DEL ALUMNO")
+    print("[INFO] EXPLORADOR DE INFORMACIÓN GENERAL DEL ALUMNO")
     print("=" * 80)
     
     # Autenticar
-    print("\n🔐 Autenticando...")
+    print("\n[INFO] Autenticando...")
     authenticator = UPQAuthenticator()
     
     if not authenticator.login():
-        print("❌ Error de autenticación")
+        print("[ERROR] Error de autenticación")
         return
     
-    print("✅ Autenticación exitosa\n")
+    print("[OK] Autenticación exitosa\n")
     
     # Obtener información general
     html = fetch_student_general_info(authenticator)
@@ -82,7 +82,7 @@ def main():
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(html)
         
-        print(f"\n💾 HTML guardado en: {filename}")
+        print(f"\n[INFO] HTML guardado en: {filename}")
         print(f"   Tamaño del archivo: {len(html)} bytes")
         
         # Análisis rápido del contenido
@@ -91,21 +91,21 @@ def main():
         
         # Buscar tablas
         tables = soup.find_all('table')
-        print(f"\n📊 Análisis del contenido:")
+        print(f"\n[INFO] Análisis del contenido:")
         print(f"   Tablas encontradas: {len(tables)}")
         
         # Buscar títulos
         for tag in ['h1', 'h2', 'h3', 'h4']:
             headers = soup.find_all(tag)
             if headers:
-                print(f"   <{tag}> encontrados: {len(headers)}")
+                print(f"   [INFO] <{tag}> encontrados: {len(headers)}")
                 for h in headers[:3]:
                     print(f"      - {h.get_text(strip=True)}")
         
         # Buscar fieldsets (secciones agrupadas)
         fieldsets = soup.find_all('fieldset')
         if fieldsets:
-            print(f"   Fieldsets (secciones): {len(fieldsets)}")
+            print(f"   [INFO] Fieldsets (secciones): {len(fieldsets)}")
             for fs in fieldsets:
                 legend = fs.find('legend')
                 if legend:
@@ -113,7 +113,7 @@ def main():
         
         # Analizar tablas
         for i, table in enumerate(tables):
-            print(f"\n   📋 Tabla {i+1}:")
+            print(f"\n   [INFO] Tabla {i+1}:")
             headers = table.find_all('th')
             if headers:
                 header_texts = [th.get_text(strip=True) for th in headers[:10]]
@@ -131,7 +131,7 @@ def main():
                         print(f"         {cell_texts}")
         
         # Mostrar preview del HTML
-        print(f"\n📄 Preview del HTML (primeros 500 caracteres):")
+        print(f"\n[INFO] Preview del HTML (primeros 500 caracteres):")
         print("-" * 80)
         preview = html[:500].replace('\n', ' ').replace('\r', '')
         print(preview + "...")
@@ -139,7 +139,7 @@ def main():
     
     # Cerrar sesión
     authenticator.logout()
-    print("\n✅ Exploración completada")
+    print("\n[OK] Exploración completada")
 
 
 if __name__ == "__main__":

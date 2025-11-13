@@ -54,7 +54,7 @@ def explore_iframe_content(fetcher: UPQFetcher, iframe_src: str) -> dict:
         else:
             url = iframe_src
         
-        print(f"  📥 Explorando iframe: {url}")
+        print(f"[INFO] Explorando iframe: {url}")
         
         response = fetcher.session.get(
             url,
@@ -119,7 +119,7 @@ def explore_endpoints(fetcher: UPQFetcher) -> dict:
     
     for name, path in endpoints.items():
         url = settings.UPQ_BASE_URL + path
-        print(f"\n🔍 Probando endpoint: {name}")
+        print(f"\n[INFO] Probando endpoint: {name}")
         print(f"   URL: {url}")
         
         try:
@@ -175,10 +175,10 @@ def explore_endpoints(fetcher: UPQFetcher) -> dict:
                     with open(debug_file, 'w', encoding='utf-8') as f:
                         f.write(response.text)
                     info['saved_to'] = debug_file
-                    print(f"   💾 Guardado en: {debug_file}")
+                    print(f"   [INFO] Guardado en: {debug_file}")
             
             results[name] = info
-            print(f"   ✅ Status: {status}, Tamaño: {size} bytes")
+            print(f"   [OK] Status: {status}, Tamaño: {size} bytes")
             
         except Exception as e:
             results[name] = {
@@ -186,7 +186,7 @@ def explore_endpoints(fetcher: UPQFetcher) -> dict:
                 'available': False,
                 'error': str(e)
             }
-            print(f"   ❌ Error: {e}")
+            print(f"   [ERROR] Error: {e}")
     
     return results
 
@@ -194,34 +194,34 @@ def explore_endpoints(fetcher: UPQFetcher) -> dict:
 def main():
     """Función principal del explorador."""
     print("=" * 80)
-    print("🔍 EXPLORADOR DEL SISTEMA INTEGRAL UPQ")
+    print("[INFO] EXPLORADOR DEL SISTEMA INTEGRAL UPQ")
     print("=" * 80)
     
     # Autenticar
-    print("\n🔐 Autenticando...")
+    print("\n[INFO] Autenticando...")
     authenticator = UPQAuthenticator()
     
     if not authenticator.login():
-        print("❌ Error de autenticación")
+        print("[ERROR] Error de autenticación")
         return
     
-    print("✅ Autenticación exitosa")
+    print("[OK] Autenticación exitosa")
     
     # Crear fetcher
     fetcher = UPQFetcher(authenticator)
     
     # Explorar página principal
-    print("\n📄 Explorando página principal del alumno...")
+    print("\n[INFO] Explorando página principal del alumno...")
     student_html = fetcher.fetch_student_info()
     
     # Guardar para análisis
     with open('debug_main_page.html', 'w', encoding='utf-8') as f:
         f.write(student_html)
-    print("   💾 Guardado en: debug_main_page.html")
+    print("   [INFO] Guardado en: debug_main_page.html")
     
     # Analizar menú
     menu_info = explore_main_menu(student_html)
-    print(f"\n📋 Menú principal: {menu_info['total_links']} enlaces encontrados")
+    print(f"\n[INFO] Menú principal: {menu_info['total_links']} enlaces encontrados")
     for item in menu_info['menu_items'][:15]:
         print(f"   - {item['text']}: {item['href']}")
     
@@ -229,28 +229,28 @@ def main():
     soup = BeautifulSoup(student_html, 'html.parser')
     iframe = soup.find('iframe', id='main-frame') or soup.find('iframe')
     if iframe and iframe.get('src'):
-        print(f"\n🖼️  Iframe principal detectado: {iframe.get('src')}")
+        print(f"\n[INFO] Iframe principal detectado: {iframe.get('src')}")
         iframe_info = explore_iframe_content(fetcher, iframe.get('src'))
         print(f"   Status: {iframe_info.get('status')}")
         if iframe_info.get('links'):
-            print("   Enlaces en iframe:")
+            print("   [INFO] Enlaces en iframe:")
             for link in iframe_info['links'][:10]:
                 print(f"     - {link['text']}: {link['href']}")
     
     # Explorar endpoints conocidos
-    print("\n🌐 Explorando endpoints conocidos del sistema...")
+    print("\n[INFO] Explorando endpoints conocidos del sistema...")
     endpoints_info = explore_endpoints(fetcher)
     
     # Resumen final
     print("\n" + "=" * 80)
-    print("📊 RESUMEN DE EXPLORACIÓN")
+    print("[INFO] RESUMEN DE EXPLORACIÓN")
     print("=" * 80)
     
     available_endpoints = {k: v for k, v in endpoints_info.items() if v.get('available')}
-    print(f"\n✅ Endpoints disponibles: {len(available_endpoints)}/{len(endpoints_info)}")
+    print(f"\n[OK] Endpoints disponibles: {len(available_endpoints)}/{len(endpoints_info)}")
     
     for name, info in available_endpoints.items():
-        print(f"\n🔹 {name.upper()}")
+        print(f"\n[INFO] {name.upper()}")
         print(f"   URL: {info.get('url_final', 'N/A')}")
         if info.get('heading'):
             print(f"   Título: {info['heading']}")
@@ -259,7 +259,7 @@ def main():
         if info.get('forms_count'):
             print(f"   Formularios: {info['forms_count']}")
         if info.get('saved_to'):
-            print(f"   💾 Archivo: {info['saved_to']}")
+            print(f"   [INFO] Archivo: {info['saved_to']}")
     
     # Guardar reporte JSON
     report = {
@@ -271,8 +271,8 @@ def main():
     with open('exploration_report.json', 'w', encoding='utf-8') as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
     
-    print("\n💾 Reporte completo guardado en: exploration_report.json")
-    print("\n✅ Exploración completada")
+    print("\n[INFO] Reporte completo guardado en: exploration_report.json")
+    print("\n[OK] Exploración completada")
     
     # Cerrar sesión
     authenticator.logout()

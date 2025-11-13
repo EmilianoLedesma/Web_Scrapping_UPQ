@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 def test_imports():
     """Verifica que todas las importaciones funcionen."""
-    print("🧪 Probando importaciones...")
+    print("[INFO] Probando importaciones...")
     
     try:
         from scraper.fetcher import UPQScraperSession
@@ -26,15 +26,15 @@ def test_imports():
             parse_servicio_social
         )
         from scraper.auth import UPQAuthenticator
-        print("✅ Todas las importaciones exitosas")
+        print("[OK] Todas las importaciones exitosas")
         return True
     except Exception as e:
-        print(f"❌ Error en importaciones: {e}")
+        print(f"[ERROR] Error en importaciones: {e}")
         return False
 
 def test_session_methods():
     """Verifica que UPQScraperSession tenga todos los métodos necesarios."""
-    print("\n🧪 Probando métodos de UPQScraperSession...")
+    print("\n[INFO] Probando métodos de UPQScraperSession...")
     
     from scraper.fetcher import UPQScraperSession
     
@@ -52,17 +52,17 @@ def test_session_methods():
     
     for method in required_methods:
         if hasattr(UPQScraperSession, method):
-            print(f"   ✅ {method}")
+            print(f"   [OK] {method}")
         else:
-            print(f"   ❌ {method} NO EXISTE")
+            print(f"   [ERROR] {method} NO EXISTE")
             return False
     
-    print("✅ Todos los métodos existen")
+    print("[OK] Todos los métodos existen")
     return True
 
 def test_parsers():
     """Verifica que los parsers tengan las firmas correctas."""
-    print("\n🧪 Probando parsers...")
+    print("\n[INFO] Probando parsers...")
     
     from scraper.parser import (
         parse_kardex,
@@ -84,17 +84,17 @@ def test_parsers():
     
     for name, parser in parsers:
         if callable(parser):
-            print(f"   ✅ {name}")
+            print(f"   [OK] {name}")
         else:
-            print(f"   ❌ {name} no es callable")
+            print(f"   [ERROR] {name} no es callable")
             return False
     
-    print("✅ Todos los parsers están disponibles")
+    print("[OK] Todos los parsers están disponibles")
     return True
 
 def test_bot_commands():
     """Verifica que el bot tenga todos los comandos necesarios."""
-    print("\n🧪 Probando comandos del bot...")
+    print("\n[INFO] Probando comandos del bot...")
     
     try:
         from bot.telegram_bot import UPQTelegramBot
@@ -114,9 +114,9 @@ def test_bot_commands():
         
         for cmd in commands:
             if hasattr(UPQTelegramBot, cmd):
-                print(f"   ✅ {cmd}")
+                print(f"   [OK] {cmd}")
             else:
-                print(f"   ❌ {cmd} NO EXISTE")
+                print(f"   [ERROR] {cmd} NO EXISTE")
                 return False
         
         print("✅ Todos los comandos del bot existen")

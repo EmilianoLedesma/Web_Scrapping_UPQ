@@ -29,7 +29,7 @@ import json
 import os
 from typing import Optional
 
-# Configurar UTF-8 para Windows (soporte de emojis)
+# Configurar UTF-8 para Windows (para caracteres extendidos)
 if sys.platform == "win32":
     import locale
     # Intentar configurar UTF-8 en la consola de Windows
@@ -54,14 +54,14 @@ import re
 def print_banner():
     """Imprime el banner del sistema."""
     banner = """
-╭───────────────────────────────────────────────────────────────╮
-│                                                               │
-│  🎓  Sistema de Scraping de Calificaciones UPQ           │
-│                                                               │
-│  🚀  Versión: 1.0.0                                         │
-│  💻  Bot de Telegram integrado                             │
-│                                                               │
-╰───────────────────────────────────────────────────────────────╯
++---------------------------------------------------------------+
+|                                                               |
+|  Sistema de Scraping de Calificaciones UPQ                    |
+|                                                               |
+|  Version: 1.0.0                                               |
+|  Bot de Telegram integrado                                    |
+|                                                               |
++---------------------------------------------------------------+
 """
     print(banner)
 
@@ -78,32 +78,37 @@ def get_grades(session: UPQScraperSession, memory: GradesMemory) -> Optional[dic
         Diccionario con las calificaciones o None si hay error.
     """
     try:
-        # Obtener HTML de calificaciones y página del alumno (contiene nombre/matrícula)
-        print("\n📡 Conectando al sistema UPQ...")
+        # Obtener HTML de calificaciones y perfil del alumno (contiene nombre/matrícula)
+        print("\n[INFO] Conectando al sistema UPQ...")
         grades_html = session.get_grades_html()
 
-        # Intentar obtener la página principal del alumno (puede contener nombre y matrícula)
+        # Intentar obtener la página home del alumno (contiene perfil completo)
         try:
-            student_html = session.get_student_info()
+            profile_html = session.get_home_data()
         except Exception:
-            student_html = ""
+            profile_html = ""
+            try:
+                # Fallback a alumnos.php solo para conservar nombre en "Bienvenido"
+                profile_html = session.get_student_info()
+            except Exception:
+                profile_html = ""
 
-        combined_html = student_html + "\n" + grades_html
+        combined_html = profile_html + "\n" + grades_html
 
         # Guardar HTML para debug
         try:
             with open("debug_grades.html", "w", encoding="utf-8") as f:
                 f.write(grades_html)
-            if student_html:
-                with open("debug_student.html", "w", encoding="utf-8") as f:
-                    f.write(student_html)
-                print(f"💾 HTML de alumno guardado: debug_student.html")
-            print(f"💾 HTML de calificaciones guardado: debug_grades.html")
+            if profile_html:
+                with open("debug_profile.html", "w", encoding="utf-8") as f:
+                    f.write(profile_html)
+                print("[INFO] HTML de perfil guardado: debug_profile.html")
+            print("[INFO] HTML de calificaciones guardado: debug_grades.html")
         except Exception:
             pass
 
         # Parsear HTML combinado
-        print("🔍 Extrayendo calificaciones...")
+        print("[INFO] Extrayendo calificaciones...")
         parser = UPQGradesParser(combined_html)
         grades_data = parser.parse_grades()
 
@@ -114,14 +119,14 @@ def get_grades(session: UPQScraperSession, memory: GradesMemory) -> Optional[dic
         return grades_data
 
     except FetchError as e:
-        print(f"\n❌ Error al obtener datos: {e}")
+        print(f"\n[ERROR] Error al obtener datos: {e}")
         return None
     except ParserError as e:
-        print(f"\n❌ Error al parsear HTML: {e}")
+        print(f"\n[ERROR] Error al parsear HTML: {e}")
         print("   El formato del HTML puede haber cambiado")
         return None
     except Exception as e:
-        print(f"\n❌ Error inesperado: {e}")
+        print(f"\n[ERROR] Error inesperado: {e}")
         return None
 
 
@@ -137,7 +142,7 @@ def check_new_grades(session: UPQScraperSession, memory: GradesMemory) -> None:
     current_grades = get_grades(session, memory)
 
     if not current_grades:
-        print("\n❌ No se pudieron obtener las calificaciones actuales")
+        print("\n[ERROR] No se pudieron obtener las calificaciones actuales")
         return
 
     # Detectar cambios (se hace contra el penúltimo snapshot)
@@ -145,9 +150,9 @@ def check_new_grades(session: UPQScraperSession, memory: GradesMemory) -> None:
     snapshots = memory.data.get("snapshots", [])
 
     if len(snapshots) < 2:
-        print("\n⚠️  No hay snapshot previo para comparar")
+        print("\n[WARN] No hay snapshot previo para comparar")
         print("   Este es el primer snapshot guardado")
-        print("\n✅ Ejecuta --check-new nuevamente en el futuro para detectar cambios")
+        print("\n[OK] Ejecuta --check-new nuevamente en el futuro para detectar cambios")
         return
 
     # Comparar con el penúltimo snapshot
@@ -159,14 +164,14 @@ def check_new_grades(session: UPQScraperSession, memory: GradesMemory) -> None:
 
     # Mostrar resultados
     print("\n" + "╭" + "─" * 78 + "╮")
-    print("│" + " " * 25 + "🔍 RESULTADOS DE COMPARACIÓN" + " " * 24 + "│")
+    print("│" + " " * 25 + "RESULTADOS DE COMPARACIÓN" + " " * 25 + "│")
     print("╰" + "─" * 78 + "╯")
 
     if changes:
-        print(f"\n🔔 ¡Se detectaron {len(changes)} cambios!")
+        print(f"\n[INFO] Se detectaron {len(changes)} cambios")
         print("\n" + memory.format_changes(changes))
     else:
-        print("\n✅ No hay cambios desde la última verificación")
+        print("\n[OK] No hay cambios desde la última verificación")
         print(f"   Último check: {previous_snapshot['timestamp']}")
 
 
@@ -180,15 +185,15 @@ def show_statistics(memory: GradesMemory) -> None:
     stats = memory.get_statistics()
 
     print("\n" + "╭" + "─" * 78 + "╮")
-    print("│" + " " * 26 + "📊 ESTADÍSTICAS DEL SISTEMA" + " " * 26 + "│")
+    print("│" + " " * 24 + "ESTADÍSTICAS DEL SISTEMA" + " " * 25 + "│")
     print("╰" + "─" * 78 + "╯")
-    print(f"\n  📁 Total de snapshots guardados: {stats['total_snapshots']}")
-    print(f"  🔔 Total de cambios detectados: {stats['total_changes']}")
-    print(f"  🕐 Última verificación: {stats['last_check'] or 'Nunca'}")
-    print(f"  📅 Primer snapshot: {stats['first_snapshot'] or 'N/A'}")
+    print(f"\n  Total de snapshots guardados: {stats['total_snapshots']}")
+    print(f"  Total de cambios detectados: {stats['total_changes']}")
+    print(f"  Última verificación: {stats['last_check'] or 'Nunca'}")
+    print(f"  Primer snapshot: {stats['first_snapshot'] or 'N/A'}")
 
     if stats['total_changes'] > 0:
-        print("\n  📝 Últimos 5 cambios:")
+        print("\n  Últimos 5 cambios:")
         recent = memory.get_recent_changes(5)
         print(memory.format_changes(recent))
 
@@ -205,9 +210,9 @@ def export_data(memory: GradesMemory, filepath: str) -> None:
     """
     try:
         memory.export_to_json(filepath)
-        print(f"\n✅ Datos exportados exitosamente a: {filepath}")
+        print(f"\n[OK] Datos exportados exitosamente a: {filepath}")
     except StorageError as e:
-        print(f"\n❌ Error al exportar: {e}")
+        print(f"\n[ERROR] Error al exportar: {e}")
 
 
 def pretty_print_grades(grades_data: dict) -> None:
@@ -226,10 +231,10 @@ def pretty_print_grades(grades_data: dict) -> None:
 
     # Header
     print('\n' + '═' * 90)
-    print(f"🎓 Alumno: {alumno}")
-    print(f"🆔 Matrícula: {matricula}{matricula_note}")
-    print(f"📅 Periodo: {periodo}")
-    print(f"⏱ Consulta: {fecha}")
+    print(f"Alumno: {alumno}")
+    print(f"Matrícula: {matricula}{matricula_note}")
+    print(f"Periodo: {periodo}")
+    print(f"Consulta: {fecha}")
     print('═' * 90 + '\n')
 
     # Tabla de materias
@@ -281,13 +286,13 @@ def pretty_print_grades(grades_data: dict) -> None:
 def get_profile_info(session: UPQScraperSession) -> Optional[dict]:
     """Obtiene información del perfil del estudiante."""
     try:
-        print("\n📡 Obteniendo información del perfil...")
+        print("\n[INFO] Obteniendo información del perfil...")
         html = session.get_home_data()
-        
+
         soup = BeautifulSoup(html, 'html.parser')
         profile_data = {}
         tables = soup.find_all('table')
-        
+
         for table in tables:
             rows = table.find_all('tr')
             for row in rows:
@@ -295,7 +300,7 @@ def get_profile_info(session: UPQScraperSession) -> Optional[dict]:
                 if len(cols) >= 2:
                     key = cols[0].get_text(strip=True).lower()
                     value = cols[1].get_text(strip=True)
-                    
+
                     if 'nombre' in key:
                         profile_data['nombre'] = value
                     elif 'matrícula' in key or 'matricula' in key:
@@ -312,35 +317,35 @@ def get_profile_info(session: UPQScraperSession) -> Optional[dict]:
                         profile_data['grupo'] = value
                     elif 'generación' in key or 'generacion' in key:
                         profile_data['generacion'] = value
-        
+
         return profile_data
     except Exception as e:
-        print(f"\n❌ Error al obtener perfil: {e}")
+        print(f"\n[ERROR] Error al obtener perfil: {e}")
         return None
 
 
 def show_profile_info(profile: dict) -> None:
     """Muestra la información del perfil."""
     print("\n" + "╭" + "─" * 78 + "╮")
-    print("│" + " " * 26 + "👤 INFORMACIÓN DEL PERFIL" + " " * 27 + "│")
+    print("│" + " " * 22 + "INFORMACIÓN DEL PERFIL" + " " * 23 + "│")
     print("╰" + "─" * 78 + "╯\n")
     
     if 'nombre' in profile:
-        print(f"  👤 Nombre: {profile['nombre']}")
+        print(f"  Nombre: {profile['nombre']}")
     if 'matricula' in profile:
-        print(f"  🆔 Matrícula: {profile['matricula']}")
+        print(f"  Matrícula: {profile['matricula']}")
     if 'carrera' in profile:
-        print(f"  🎓 Carrera: {profile['carrera']}")
+        print(f"  Carrera: {profile['carrera']}")
     if 'cuatrimestre' in profile:
-        print(f"  📚 Cuatrimestre: {profile['cuatrimestre']}")
+        print(f"  Cuatrimestre: {profile['cuatrimestre']}")
     if 'grupo' in profile:
-        print(f"  👥 Grupo: {profile['grupo']}")
+        print(f"  Grupo: {profile['grupo']}")
     if 'generacion' in profile:
-        print(f"  📅 Generación: {profile['generacion']}")
+        print(f"  Generación: {profile['generacion']}")
     if 'promedio' in profile:
-        print(f"  📊 Promedio: {profile['promedio']}")
+        print(f"  Promedio: {profile['promedio']}")
     if 'creditos' in profile:
-        print(f"  💳 Créditos: {profile['creditos']}")
+        print(f"  Créditos: {profile['creditos']}")
     
     print("\n" + "╰" + "─" * 78 + "╯")
 
@@ -350,25 +355,25 @@ def show_promedio(session: UPQScraperSession) -> None:
     profile = get_profile_info(session)
     
     if not profile or 'promedio' not in profile:
-        print("\n❌ No se pudo obtener el promedio")
+        print("\n[ERROR] No se pudo obtener el promedio")
         return
     
     promedio = profile['promedio']
     print("\n" + "╭" + "─" * 78 + "╮")
-    print("│" + " " * 27 + "📊 PROMEDIO GENERAL" + " " * 30 + "│")
+    print("│" + " " * 27 + "PROMEDIO GENERAL" + " " * 32 + "│")
     print("╰" + "─" * 78 + "╯\n")
     print(f"  Tu promedio actual es: {promedio}\n")
     
     try:
         prom_num = float(promedio)
         if prom_num >= 9.0:
-            print("  🌟 ¡Excelente desempeño!")
+            print("  Excelente desempeño")
         elif prom_num >= 8.0:
-            print("  👍 ¡Muy bien!")
+            print("  Muy bien")
         elif prom_num >= 7.0:
-            print("  📚 Buen trabajo")
+            print("  Buen trabajo")
         else:
-            print("  💪 ¡Sigue adelante!")
+            print("  Sigue adelante")
     except:
         pass
     
@@ -380,12 +385,12 @@ def show_creditos(session: UPQScraperSession) -> None:
     profile = get_profile_info(session)
     
     if not profile or 'creditos' not in profile:
-        print("\n❌ No se pudo obtener información de créditos")
+        print("\n[ERROR] No se pudo obtener información de créditos")
         return
     
     creditos_text = profile['creditos']
     print("\n" + "╭" + "─" + "─" * 78 + "╮")
-    print("│" + " " * 27 + "💳 CRÉDITOS APROBADOS" + " " * 28 + "│")
+    print("│" + " " * 26 + "CRÉDITOS APROBADOS" + " " * 30 + "│")
     print("╰" + "─" * 78 + "╯\n")
     print(f"  {creditos_text}\n")
     
@@ -397,17 +402,17 @@ def show_creditos(session: UPQScraperSession) -> None:
             porcentaje = (aprobados / totales) * 100
             faltantes = totales - aprobados
             
-            print(f"  📈 Avance: {porcentaje:.1f}%")
-            print(f"  📝 Te faltan: {faltantes} créditos\n")
-            
+            print(f"  Avance: {porcentaje:.1f}%")
+            print(f"  Te faltan: {faltantes} créditos\n")
+
             if porcentaje >= 90:
-                print("  🎓 ¡Casi listo para graduarte!")
+                print("  Casi listo para graduarte")
             elif porcentaje >= 75:
-                print("  🚀 ¡Ya estás en la recta final!")
+                print("  Ya estás en la recta final")
             elif porcentaje >= 50:
-                print("  💪 ¡Vas por buen camino!")
+                print("  Vas por buen camino")
             else:
-                print("  📚 ¡Sigue adelante!")
+                print("  Sigue adelante")
         except:
             pass
     
@@ -419,7 +424,7 @@ def show_estancias(session: UPQScraperSession) -> None:
     try:
         from scraper.parser import parse_estancias
         
-        print("\n📡 Obteniendo información de estancias...")
+        print("\n[INFO] Obteniendo información de estancias...")
         html = session.get_info_general()
         
         # Guardar debug
@@ -429,11 +434,11 @@ def show_estancias(session: UPQScraperSession) -> None:
         estancias = parse_estancias(html)
         
         if not estancias:
-            print("\n📝 No se encontraron estancias registradas")
+            print("\n[INFO] No se encontraron estancias registradas")
             return
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 24 + "💼 ESTANCIAS PROFESIONALES" + " " * 27 + "│")
+        print("│" + " " * 24 + "ESTANCIAS PROFESIONALES" + " " * 28 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         for estancia in estancias:
@@ -444,30 +449,29 @@ def show_estancias(session: UPQScraperSession) -> None:
             estatus = estancia.get('estatus', 'N/A')
             descripcion = estancia.get('descripcion', '')
             
-            # Emoji según estatus
             if estatus == "CONCLUIDO":
-                emoji_estatus = "✅"
+                estado = "[OK]"
             elif estatus == "AUTORIZADO":
-                emoji_estatus = "🔄"
+                estado = "[PENDIENTE]"
             else:
-                emoji_estatus = "📋"
-            
-            print(f"  {emoji_estatus} {curso}")
-            print(f"     🏢 Empresa: {empresa}")
-            print(f"     📅 Periodo: {periodo}")
-            print(f"     📊 Estatus: {estatus}")
+                estado = "[INFO]"
+
+            print(f"  {estado} {curso}")
+            print(f"     Empresa: {empresa}")
+            print(f"     Periodo: {periodo}")
+            print(f"     Estatus: {estatus}")
             
             if descripcion:
                 # Mostrar solo los primeros 100 caracteres de la descripción
                 desc_corta = descripcion[:100] + "..." if len(descripcion) > 100 else descripcion
-                print(f"     � {desc_corta}")
+                print(f"     Descripción: {desc_corta}")
             
             print()
         
         print("╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener estancias: {e}")
+        print(f"\n[ERROR] Error al obtener estancias: {e}")
         import traceback
         traceback.print_exc()
 
@@ -475,7 +479,7 @@ def show_estancias(session: UPQScraperSession) -> None:
 def show_historial_promedios(session: UPQScraperSession) -> None:
     """Muestra el historial de promedios por cuatrimestre."""
     try:
-        print("\n📡 Obteniendo historial de promedios...")
+        print("\n[INFO] Obteniendo historial de promedios...")
         html = session.get_info_general()
         
         soup = BeautifulSoup(html, 'html.parser')
@@ -503,32 +507,32 @@ def show_historial_promedios(session: UPQScraperSession) -> None:
                                     })
         
         if not historial:
-            print("\n📝 No se encontró historial de promedios")
+            print("\n[INFO] No se encontró historial de promedios")
             return
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 26 + "📊 HISTORIAL DE PROMEDIOS" + " " * 27 + "│")
+        print("│" + " " * 26 + "HISTORIAL DE PROMEDIOS" + " " * 29 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         for item in historial:
-            print(f"  📅 {item['cuatrimestre']}: {item['promedio']}")
+            print(f"  {item['cuatrimestre']}: {item['promedio']}")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener historial: {e}")
+        print(f"\n[ERROR] Error al obtener historial: {e}")
 
 
 def show_horario(session: UPQScraperSession) -> None:
     """Muestra el horario de clases."""
     try:
-        print("\n📡 Obteniendo horario de clases...")
+        print("\n[INFO] Obteniendo horario de clases...")
         html = session.get_horario()
         
         soup = BeautifulSoup(html, 'html.parser')
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 28 + "📅 HORARIO DE CLASES" + " " * 30 + "│")
+        print("│" + " " * 28 + "HORARIO DE CLASES" + " " * 31 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Buscar tabla de horario
@@ -546,20 +550,20 @@ def show_horario(session: UPQScraperSession) -> None:
                         print(f"  {row_text}")
         
         if not found:
-            print("  ℹ️ No se encontró información de horario")
+            print("  No se encontró información de horario")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener horario: {e}")
+        print(f"\n[ERROR] Error al obtener horario: {e}")
 
 
 def show_kardex(session: UPQScraperSession) -> None:
     """Muestra el kardex académico completo."""
     try:
         from scraper.parser import parse_kardex
-        
-        print("\n📡 Obteniendo kardex académico...")
+
+        print("\n[INFO] Obteniendo kardex académico...")
         html = session.get_kardex()
         
         # Guardar debug
@@ -569,11 +573,11 @@ def show_kardex(session: UPQScraperSession) -> None:
         materias = parse_kardex(html)
         
         if not materias:
-            print("\n❌ No se encontró información del kardex")
+            print("\n[INFO] No se encontró información del kardex")
             return
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 28 + "📚 KARDEX ACADÉMICO" + " " * 30 + "│")
+        print("│" + " " * 28 + "KARDEX ACADÉMICO" + " " * 32 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         cuatrimestre_actual = None
@@ -594,18 +598,18 @@ def show_kardex(session: UPQScraperSession) -> None:
             
             try:
                 cal_num = float(cal)
-                emoji_cal = "✅" if cal_num >= 7 else "❌"
+                indicador = "[APROBADA]" if cal_num >= 7 else "[NO ACREDITADA]"
             except:
-                emoji_cal = "📝"
-            
-            print(f"  {emoji_cal} {nombre}: {cal}")
-            print(f"     └ {tipo}")
+                indicador = "[SIN DATOS]"
+
+            print(f"  {indicador} {nombre}: {cal}")
+            print(f"     Tipo de evaluación: {tipo}")
         
-        print(f"\n  📊 Total: {len(materias)} materias cursadas")
+        print(f"\n  Total: {len(materias)} materias cursadas")
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener kardex: {e}")
+        print(f"\n[ERROR] Error al obtener kardex: {e}")
         import traceback
         traceback.print_exc()
 
@@ -613,13 +617,13 @@ def show_kardex(session: UPQScraperSession) -> None:
 def show_boleta(session: UPQScraperSession) -> None:
     """Muestra la boleta de calificaciones."""
     try:
-        print("\n📡 Obteniendo boleta de calificaciones...")
+        print("\n[INFO] Obteniendo boleta de calificaciones...")
         html = session.get_boleta()
         
         soup = BeautifulSoup(html, 'html.parser')
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 25 + "📋 BOLETA DE CALIFICACIONES" + " " * 26 + "│")
+        print("│" + " " * 25 + "BOLETA DE CALIFICACIONES" + " " * 28 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Buscar tabla de boleta
@@ -637,20 +641,20 @@ def show_boleta(session: UPQScraperSession) -> None:
                         print(f"  {row_text}")
         
         if not found:
-            print("  ℹ️ No se encontró boleta de calificaciones")
+            print("  No se encontró boleta de calificaciones")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener boleta: {e}")
+        print(f"\n[ERROR] Error al obtener boleta: {e}")
 
 
 def show_servicio_social(session: UPQScraperSession) -> None:
     """Muestra información del servicio social."""
     try:
         from scraper.parser import parse_servicio_social
-        
-        print("\n📡 Obteniendo información de servicio social...")
+
+        print("\n[INFO] Obteniendo información de servicio social...")
         html = session.get_info_general()
         
         # Guardar debug
@@ -660,43 +664,43 @@ def show_servicio_social(session: UPQScraperSession) -> None:
         servicio = parse_servicio_social(html)
         
         if not servicio:
-            print("\n❌ No se encontró información del servicio social")
+            print("\n[INFO] No se encontró información del servicio social")
             return
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 28 + "🎓 SERVICIO SOCIAL" + " " * 31 + "│")
+        print("│" + " " * 28 + "SERVICIO SOCIAL" + " " * 35 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Estado del servicio
         activo = servicio.get('activo', False)
         if activo:
-            print("  ✅ Servicio social ACTIVO\n")
+            print("  [OK] Servicio social ACTIVO\n")
         else:
-            print("  ⏸️ Servicio social NO ACTIVO\n")
+            print("  [INFO] Servicio social NO ACTIVO\n")
         
         # Requisitos
         mat_req = servicio.get('materias_requeridas', 'N/A')
         mat_falt = servicio.get('materias_faltantes', 'N/A')
         
-        print(f"  📚 Materias requeridas: {mat_req}")
-        print(f"  📋 Materias faltantes: {mat_falt}\n")
+        print(f"  Materias requeridas: {mat_req}")
+        print(f"  Materias faltantes: {mat_falt}\n")
         
         # Estatus
         estatus = servicio.get('estatus', 'N/A')
         cumple = servicio.get('cumple_requisitos', False)
         
         if cumple:
-            print(f"  ✅ {estatus}")
-            print("  ¡Puedes comenzar tu servicio social! 🎉")
+            print(f"  [OK] {estatus}")
+            print("  Puedes comenzar tu servicio social")
         else:
-            print(f"  ⚠️ {estatus}")
+            print(f"  [WARN] {estatus}")
             if mat_falt != 'N/A':
                 print(f"  Te faltan {mat_falt} materias para cumplir requisitos.")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener servicio social: {e}")
+        print(f"\n[ERROR] Error al obtener servicio social: {e}")
         import traceback
         traceback.print_exc()
 
@@ -706,7 +710,7 @@ def show_perfil_personal(session: UPQScraperSession) -> None:
     try:
         from scraper.parser import parse_student_profile
         
-        print("\n📡 Obteniendo perfil personal...")
+        print("\n[INFO] Obteniendo perfil personal...")
         html = session.get_perfil()
         
         # Guardar debug
@@ -716,11 +720,11 @@ def show_perfil_personal(session: UPQScraperSession) -> None:
         perfil = parse_student_profile(html)
         
         if not perfil:
-            print("\n❌ No se encontró información del perfil")
+            print("\n[INFO] No se encontró información del perfil")
             return
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 27 + "👤 PERFIL PERSONAL" + " " * 31 + "│")
+        print("│" + " " * 27 + "PERFIL PERSONAL" + " " * 35 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Función helper para obtener campos
@@ -734,7 +738,7 @@ def show_perfil_personal(session: UPQScraperSession) -> None:
         generacion = get_field('generación', 'generacion')
         grupo = get_field('grupo')
         
-        print("  📋 DATOS PERSONALES")
+        print("  DATOS PERSONALES")
         print(f"     Nombre: {nombre}")
         print(f"     Matrícula: {matricula}")
         print(f"     NSS: {get_field('nss')}")
@@ -749,7 +753,7 @@ def show_perfil_personal(session: UPQScraperSession) -> None:
         nivel_ingles = get_field('nivel_inglés', 'nivel_ingles')
         estatus = get_field('estatus_actual', 'estatus')
         
-        print("  🎓 DATOS ACADÉMICOS")
+        print("  DATOS ACADÉMICOS")
         print(f"     Carrera: {carrera}")
         print(f"     Generación: {generacion}")
         print(f"     Grupo: {grupo}")
@@ -757,7 +761,7 @@ def show_perfil_personal(session: UPQScraperSession) -> None:
         print(f"     Estatus: {estatus}")
         print()
         
-        print("  📊 DESEMPEÑO")
+        print("  DESEMPEÑO")
         print(f"     Promedio: {promedio}")
         print(f"     Materias Aprobadas: {materias_aprob}")
         print(f"     Materias No Acreditadas: {materias_no_acred}")
@@ -769,14 +773,14 @@ def show_perfil_personal(session: UPQScraperSession) -> None:
         tutor = get_field('tutores', 'tutor')
         email_tutor = get_field('correo_tutor', 'email_tutor')
         
-        print("  👨‍🏫 TUTORÍA")
+        print("  TUTORÍA")
         print(f"     Tutor: {tutor}")
         print(f"     Email: {email_tutor}")
         
         print("\n" + "╰" + "─" * 78 + "╯")
-        
+
     except Exception as e:
-        print(f"\n❌ Error al obtener perfil: {e}")
+        print(f"\n[ERROR] Error al obtener perfil: {e}")
         import traceback
         traceback.print_exc()
 
@@ -784,13 +788,13 @@ def show_perfil_personal(session: UPQScraperSession) -> None:
 def show_pagos(session: UPQScraperSession) -> None:
     """Muestra el historial de pagos."""
     try:
-        print("\n📡 Obteniendo historial de pagos...")
+        print("\n[INFO] Obteniendo historial de pagos...")
         html = session.get_pagos()
         
         soup = BeautifulSoup(html, 'html.parser')
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 27 + "💰 HISTORIAL DE PAGOS" + " " * 30 + "│")
+        print("│" + " " * 27 + "HISTORIAL DE PAGOS" + " " * 32 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Buscar tabla de pagos
@@ -808,24 +812,24 @@ def show_pagos(session: UPQScraperSession) -> None:
                         print(f"  {row_text}")
         
         if not found:
-            print("  ℹ️ No se encontró historial de pagos")
+            print("  [INFO] No se encontró historial de pagos")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener pagos: {e}")
+        print(f"\n[ERROR] Error al obtener pagos: {e}")
 
 
 def show_adeudos(session: UPQScraperSession) -> None:
     """Muestra los adeudos pendientes."""
     try:
-        print("\n📡 Obteniendo adeudos...")
+        print("\n[INFO] Obteniendo adeudos...")
         html = session.get_adeudos()
         
         soup = BeautifulSoup(html, 'html.parser')
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 30 + "⚠️ ADEUDOS PENDIENTES" + " " * 27 + "│")
+        print("│" + " " * 30 + "ADEUDOS PENDIENTES" + " " * 30 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Buscar tabla de adeudos
@@ -843,24 +847,24 @@ def show_adeudos(session: UPQScraperSession) -> None:
                         print(f"  {row_text}")
         
         if not found:
-            print("  ✅ No se encontraron adeudos pendientes")
+            print("  [OK] No se encontraron adeudos pendientes")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener adeudos: {e}")
+        print(f"\n[ERROR] Error al obtener adeudos: {e}")
 
 
 def show_documentos(session: UPQScraperSession) -> None:
     """Muestra los documentos escolares disponibles."""
     try:
-        print("\n📡 Obteniendo documentos escolares...")
+        print("\n[INFO] Obteniendo documentos escolares...")
         html = session.get_documentos()
         
         soup = BeautifulSoup(html, 'html.parser')
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 26 + "📄 DOCUMENTOS ESCOLARES" + " " * 29 + "│")
+        print("│" + " " * 26 + "DOCUMENTOS ESCOLARES" + " " * 30 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Buscar documentos disponibles
@@ -875,28 +879,28 @@ def show_documentos(session: UPQScraperSession) -> None:
         
         if documentos:
             for doc in documentos:
-                print(f"  📄 {doc['nombre']}")
+                print(f"  Documento: {doc['nombre']}")
                 if doc['url']:
-                    print(f"     🔗 {doc['url']}")
+                    print(f"     Enlace: {doc['url']}")
         else:
-            print("  ℹ️ No se encontraron documentos disponibles")
+            print("  [INFO] No se encontraron documentos disponibles")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener documentos: {e}")
+        print(f"\n[ERROR] Error al obtener documentos: {e}")
 
 
 def show_calendario(session: UPQScraperSession) -> None:
     """Muestra el calendario académico."""
     try:
-        print("\n📡 Obteniendo calendario académico...")
+        print("\n[INFO] Obteniendo calendario académico...")
         html = session.get_calendario()
         
         soup = BeautifulSoup(html, 'html.parser')
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 27 + "📆 CALENDARIO ACADÉMICO" + " " * 28 + "│")
+        print("│" + " " * 27 + "CALENDARIO ACADÉMICO" + " " * 30 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         # Buscar tabla de calendario
@@ -914,18 +918,18 @@ def show_calendario(session: UPQScraperSession) -> None:
                         print(f"  {row_text}")
         
         if not found:
-            print("  ℹ️ No se encontró calendario académico")
+            print("  [INFO] No se encontró calendario académico")
         
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener calendario: {e}")
+        print(f"\n[ERROR] Error al obtener calendario: {e}")
 
 
 def show_historial_promedios(session: UPQScraperSession) -> None:
     """Muestra el historial de promedios por cuatrimestre."""
     try:
-        print("\n📡 Obteniendo historial de promedios...")
+        print("\n[INFO] Obteniendo historial de promedios...")
         html = session.get_info_general()
         
         soup = BeautifulSoup(html, 'html.parser')
@@ -953,21 +957,21 @@ def show_historial_promedios(session: UPQScraperSession) -> None:
                                     })
         
         if not historial:
-            print("\n📝 No se encontró historial de promedios")
+            print("\n[INFO] No se encontró historial de promedios")
             return
         
         print("\n" + "╭" + "─" * 78 + "╮")
-        print("│" + " " * 25 + "📈 HISTORIAL DE PROMEDIOS" + " " * 28 + "│")
+        print("│" + " " * 25 + "HISTORIAL DE PROMEDIOS" + " " * 30 + "│")
         print("╰" + "─" * 78 + "╯\n")
         
         for item in historial:
-            print(f"  📚 {item['cuatrimestre']}: {item['promedio']}")
+            print(f"  {item['cuatrimestre']}: {item['promedio']}")
         
-        print("\n  💡 Tip: Analiza tu evolución para identificar patrones")
+        print("\n  Consejo: Analiza tu evolución para identificar patrones")
         print("\n" + "╰" + "─" * 78 + "╯")
         
     except Exception as e:
-        print(f"\n❌ Error al obtener historial: {e}")
+        print(f"\n[ERROR] Error al obtener historial: {e}")
 
 
 def main():
@@ -1122,7 +1126,7 @@ Ejemplos de uso:
     try:
         memory = GradesMemory()
     except Exception as e:
-        print(f"❌ Error al inicializar almacenamiento: {e}")
+        print(f"[ERROR] Error al inicializar almacenamiento: {e}")
         sys.exit(1)
 
     # Manejar comandos que no requieren conexión
@@ -1135,12 +1139,12 @@ Ejemplos de uso:
         return
 
     if args.clear_history:
-        confirm = input("⚠️  ¿Estás seguro de que quieres limpiar el historial? (s/N): ")
+        confirm = input("[WARN] ¿Estás seguro de que quieres limpiar el historial? (s/N): ")
         if confirm.lower() == 's':
             memory.clear_history()
-            print("✅ Historial limpiado")
+            print("[OK] Historial limpiado")
         else:
-            print("❌ Operación cancelada")
+            print("[INFO] Operación cancelada")
         return
 
     # Comandos que requieren conexión al sistema UPQ
@@ -1150,7 +1154,7 @@ Ejemplos de uso:
         args.documentos or args.calendario):
         # Validar configuración
         if not settings.validate():
-            print("\n❌ Configura tus credenciales en el archivo .env")
+            print("\n[ERROR] Configura tus credenciales en el archivo .env")
             print("   Copia .env.example a .env y agrega tus datos")
             sys.exit(1)
 
@@ -1158,12 +1162,12 @@ Ejemplos de uso:
         try:
             with UPQScraperSession() as session:
                 print("\n╭────────────────────────────────────────────────────╮")
-                print("│  🔐 Autenticando en el sistema UPQ..." + " " * 17 + "│")
+                print("│  Autenticando en el sistema UPQ..." + " " * 23 + "│")
                 print("╰────────────────────────────────────────────────────╯")
 
                 # Intentar login
                 if not session.login():
-                    print("\n❌ Error de autenticación")
+                    print("\n[ERROR] Error de autenticación")
                     sys.exit(1)
 
                 # Ejecutar comando correspondiente
@@ -1171,61 +1175,61 @@ Ejemplos de uso:
                     profile = get_profile_info(session)
                     if profile:
                         show_profile_info(profile)
-                        print("\n✅ Operación completada exitosamente")
+                        print("\n[OK] Operación completada exitosamente")
                     else:
                         sys.exit(1)
                 
                 elif args.promedio:
                     show_promedio(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.creditos:
                     show_creditos(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.estancias:
                     show_estancias(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.historial:
                     show_historial_promedios(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.horario:
                     show_horario(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.kardex:
                     show_kardex(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.boleta:
                     show_boleta(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.servicio:
                     show_servicio_social(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.perfil:
                     show_perfil_personal(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.pagos:
                     show_pagos(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.adeudos:
                     show_adeudos(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.documentos:
                     show_documentos(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.calendario:
                     show_calendario(session)
-                    print("\n✅ Operación completada exitosamente")
+                    print("\n[OK] Operación completada exitosamente")
                 
                 elif args.get_grades or args.json:
                     grades = get_grades(session, memory)
@@ -1238,22 +1242,22 @@ Ejemplos de uso:
                             # Mostrar resumen legible (bonito)
                             pretty_print_grades(grades)
 
-                        print("\n✅ Operación completada exitosamente")
+                        print("\n[OK] Operación completada exitosamente")
                     else:
                         sys.exit(1)
 
                 elif args.check_new:
                     check_new_grades(session, memory)
-                    print("\n✅ Verificación completada")
+                    print("\n[OK] Verificación completada")
 
         except AuthenticationError as e:
-            print(f"\n❌ Error de autenticación: {e}")
+            print(f"\n[ERROR] Error de autenticación: {e}")
             sys.exit(1)
         except KeyboardInterrupt:
-            print("\n\n⚠️  Operación cancelada por el usuario")
+            print("\n\n[WARN] Operación cancelada por el usuario")
             sys.exit(0)
         except Exception as e:
-            print(f"\n❌ Error inesperado: {e}")
+            print(f"\n[ERROR] Error inesperado: {e}")
             import traceback
             traceback.print_exc()
             sys.exit(1)

@@ -55,7 +55,7 @@ class UPQFetcher:
 
         # Primero visitar la página principal para inicializar la sesión
         try:
-            print("🔄 Inicializando sesión...")
+            print("[INFO] Inicializando sesión...")
             home_url = f"{settings.UPQ_BASE_URL}/alumnos.php"
             home_response = self.session.get(
                 home_url,
@@ -64,13 +64,13 @@ class UPQFetcher:
             )
             home_response.raise_for_status()
         except Exception as e:
-            print(f"⚠️  Advertencia al acceder a página principal: {str(e)}")
+            print(f"[WARN] Advertencia al acceder a página principal: {str(e)}")
 
         # Construir URL de calificaciones con timestamp (petición AJAX)
         timestamp = int(time.time() * 1000)  # Timestamp en milisegundos
         url = f"{settings.UPQ_GRADES_URL}?iid={iid}&_={timestamp}"
 
-        print(f"📥 Obteniendo calificaciones desde: {url}")
+        print(f"[INFO] Obteniendo calificaciones desde: {url}")
 
         # Headers adicionales para petición AJAX
         ajax_headers = {
@@ -97,7 +97,7 @@ class UPQFetcher:
                     "Sesión expirada - Se requiere login nuevamente"
                 )
 
-            print(f"✅ Datos obtenidos exitosamente ({len(response.text)} bytes)")
+            print(f"[OK] Datos obtenidos exitosamente ({len(response.text)} bytes)")
 
             return response.text
 
@@ -136,7 +136,7 @@ class UPQFetcher:
         """
         url = f"{settings.UPQ_BASE_URL}/alumnos.php"
 
-        print(f"📥 Obteniendo información del alumno...")
+        print(f"[INFO] Obteniendo información del alumno...")
 
         try:
             response = self.session.get(
@@ -165,7 +165,7 @@ class UPQFetcher:
         """
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/inscripcion"
 
-        print(f"📥 Obteniendo inscripciones...")
+        print(f"[INFO] Obteniendo inscripciones...")
 
         try:
             response = self.session.get(
@@ -193,7 +193,7 @@ class UPQFetcher:
         """
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/home/home"
 
-        print(f"📥 Obteniendo datos del perfil...")
+        print(f"[INFO] Obteniendo datos del perfil...")
 
         try:
             response = self.session.get(
@@ -204,7 +204,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Perfil obtenido ({len(response.text)} bytes)")
+            print(f"[OK] Perfil obtenido ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -224,7 +224,7 @@ class UPQFetcher:
         # Usar el mid (menu id) conocido para información general
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/alumno_informacion_general?mid=16746"
 
-        print(f"📥 Obteniendo información general completa...")
+        print(f"[INFO] Obteniendo información general completa...")
 
         try:
             response = self.session.get(
@@ -235,7 +235,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Información general obtenida ({len(response.text)} bytes)")
+            print(f"[OK] Información general obtenida ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -267,7 +267,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/horario-materias?iid={iid}&_={timestamp}"
 
-        print(f"📅 Obteniendo horario de clases...")
+        print(f"[INFO] Obteniendo horario de clases...")
 
         # Headers AJAX
         ajax_headers = {
@@ -286,7 +286,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Horario obtenido ({len(response.text)} bytes)")
+            print(f"[OK] Horario obtenido ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -315,7 +315,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/calificaciones?_={timestamp}"
 
-        print(f"📚 Obteniendo kardex académico desde /calificaciones...")
+        print(f"[INFO] Obteniendo kardex académico desde /calificaciones...")
 
         # Headers AJAX como en EndpointsExplorables.md
         ajax_headers = {
@@ -334,7 +334,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Kardex obtenido ({len(response.text)} bytes)")
+            print(f"[OK] Kardex obtenido ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -352,7 +352,7 @@ class UPQFetcher:
         """
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/boleta-calificaciones"
 
-        print(f"📋 Obteniendo boleta de calificaciones...")
+        print(f"[INFO] Obteniendo boleta de calificaciones...")
 
         try:
             response = self.session.get(
@@ -363,7 +363,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Boleta obtenida ({len(response.text)} bytes)")
+            print(f"[OK] Boleta obtenida ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -417,7 +417,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/pagos?_={timestamp}"
 
-        print(f"💰 Obteniendo historial de pagos...")
+        print(f"[INFO] Obteniendo historial de pagos...")
 
         # Headers AJAX
         ajax_headers = {
@@ -436,7 +436,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Pagos obtenidos ({len(response.text)} bytes)")
+            print(f"[OK] Pagos obtenidos ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -455,7 +455,7 @@ class UPQFetcher:
         # Endpoint correcto según EndpointsExplorables.md
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/controlpagos/pagosEnAdeudos"
 
-        print(f"⚠️ Obteniendo adeudos...")
+        print(f"[WARN] Obteniendo adeudos...")
 
         # Headers AJAX
         ajax_headers = {
@@ -474,7 +474,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Adeudos obtenidos ({len(response.text)} bytes)")
+            print(f"[OK] Adeudos obtenidos ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -493,7 +493,7 @@ class UPQFetcher:
         # Endpoint correcto según EndpointsExplorables.md
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/documentos-en-proceso"
 
-        print(f"📄 Obteniendo documentos escolares...")
+        print(f"[INFO] Obteniendo documentos escolares...")
 
         # Headers AJAX
         ajax_headers = {
@@ -512,7 +512,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Documentos obtenidos ({len(response.text)} bytes)")
+            print(f"[OK] Documentos obtenidos ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -532,7 +532,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/seguimiento-cuatrimestral?_={timestamp}"
 
-        print(f"📆 Obteniendo calendario académico...")
+        print(f"[INFO] Obteniendo calendario académico...")
 
         # Headers AJAX
         ajax_headers = {
@@ -551,7 +551,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Calendario obtenido ({len(response.text)} bytes)")
+            print(f"[OK] Calendario obtenido ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -574,7 +574,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/historial-academico?_={timestamp}"
 
-        print(f"📖 Obteniendo historial académico...")
+        print(f"[INFO] Obteniendo historial académico...")
 
         ajax_headers = {
             'X-Requested-With': 'XMLHttpRequest',
@@ -592,7 +592,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Historial académico obtenido ({len(response.text)} bytes)")
+            print(f"[OK] Historial académico obtenido ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -623,7 +623,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/carga-academica?iid={iid}&_={timestamp}"
 
-        print(f"📚 Obteniendo carga académica (iid={iid})...")
+        print(f"[INFO] Obteniendo carga académica (iid={iid})...")
 
         ajax_headers = {
             'X-Requested-With': 'XMLHttpRequest',
@@ -641,7 +641,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Carga académica obtenida ({len(response.text)} bytes)")
+            print(f"[OK] Carga académica obtenida ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -663,7 +663,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/pagos-en-proceso?_={timestamp}"
 
-        print(f"⏳ Obteniendo pagos en proceso...")
+        print(f"[INFO] Obteniendo pagos en proceso...")
 
         ajax_headers = {
             'X-Requested-With': 'XMLHttpRequest',
@@ -681,7 +681,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Pagos en proceso obtenidos ({len(response.text)} bytes)")
+            print(f"[OK] Pagos en proceso obtenidos ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -703,7 +703,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/inscripcion?_={timestamp}"
 
-        print(f"📝 Obteniendo información de inscripción...")
+        print(f"[INFO] Obteniendo información de inscripción...")
 
         ajax_headers = {
             'X-Requested-With': 'XMLHttpRequest',
@@ -721,7 +721,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Inscripción obtenida ({len(response.text)} bytes)")
+            print(f"[OK] Inscripción obtenida ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -745,7 +745,7 @@ class UPQFetcher:
         # mid=16746 es un parámetro que se detecta automáticamente, pero puede variar
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/alumno_informacion_general?mid=16746&_={timestamp}"
 
-        print(f"🎓 Obteniendo información general del alumno...")
+        print(f"[INFO] Obteniendo información general del alumno...")
 
         ajax_headers = {
             'X-Requested-With': 'XMLHttpRequest',
@@ -763,7 +763,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Información general obtenida ({len(response.text)} bytes)")
+            print(f"[OK] Información general obtenida ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:
@@ -785,7 +785,7 @@ class UPQFetcher:
         timestamp = int(time.time() * 1000)
         url = f"{settings.UPQ_BASE_URL}/alumnos.php/servicios?_={timestamp}"
 
-        print(f"🛠️ Obteniendo servicios disponibles...")
+        print(f"[INFO] Obteniendo servicios disponibles...")
 
         ajax_headers = {
             'X-Requested-With': 'XMLHttpRequest',
@@ -803,7 +803,7 @@ class UPQFetcher:
 
             response.raise_for_status()
 
-            print(f"✅ Servicios obtenidos ({len(response.text)} bytes)")
+            print(f"[OK] Servicios obtenidos ({len(response.text)} bytes)")
             return response.text
 
         except requests.exceptions.RequestException as e:

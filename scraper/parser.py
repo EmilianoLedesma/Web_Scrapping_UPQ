@@ -48,7 +48,7 @@ class UPQGradesParser:
             ParserError: Si no se puede parsear el HTML.
         """
         try:
-            print("🔍 Parseando HTML de calificaciones...")
+            print("[INFO] Parseando HTML de calificaciones...")
 
             # Extraer información del alumno
             student_info = self._extract_student_info()
@@ -72,7 +72,7 @@ class UPQGradesParser:
                 "materias": materias
             }
 
-            print(f"✅ Parseadas {len(materias)} materias exitosamente")
+            print(f"[OK] Parseadas {len(materias)} materias exitosamente")
 
             return result
 
@@ -106,7 +106,7 @@ class UPQGradesParser:
         # Buscar nombre del alumno (puede estar en varios lugares)
         # Buscamos patrones comunes
         for pattern in [
-            r'Bienvenido\s+([A-ZÁÉÍÓÚÑ\s]+)',  # Patrón "Bienvenido NOMBRE"
+            r'Bienvenido\s*([A-ZÁÉÍÓÚÑ\s]+)',  # Patrón "Bienvenido NOMBRE"
             r'Alumno:\s*([A-ZÁÉÍÓÚÑ\s]+)',
             r'Nombre:\s*([A-ZÁÉÍÓÚÑ\s]+)',
             r'ALUMNO:\s*([A-ZÁÉÍÓÚÑ\s]+)',
@@ -131,13 +131,50 @@ class UPQGradesParser:
                 text = tag.get_text(strip=True)
                 if 'Bienvenido' in text or 'bienvenido' in text:
                     # Extraer el nombre después de "Bienvenido"
-                    match = re.search(r'[Bb]ienvenido\s+([A-ZÁÉÍÓÚÑ\s]+)', text)
+                    match = re.search(r'[Bb]ienvenido\s*([A-ZÁÉÍÓÚÑ\s]+)', text)
                     if match:
                         nombre = match.group(1).strip()
                         nombre = re.sub(r'\s+', ' ', nombre)
                         if len(nombre.split()) >= 2:
                             info["nombre"] = nombre
                             break
+
+        # Fallback adicional: buscar en el div.username de la página principal
+        if "nombre" not in info:
+            username_div = self.soup.find('div', class_='username')
+            if username_div:
+                highlight = username_div.find(['span', 'strong'])
+                candidate = (highlight or username_div).get_text(strip=True)
+                candidate = re.sub(r'\s+', ' ', candidate)
+                if candidate:
+                    # El div incluye "Bienvenido" al inicio; eliminarlo si aparece
+                    candidate = re.sub(r'^[Bb]ienvenido\s*', '', candidate)
+                    if len(candidate.split()) >= 2:
+                        info["nombre"] = candidate.strip()
+
+        # Fallback final: recorrer tablas de perfil (th/td)
+        if "nombre" not in info or "matricula" not in info or "periodo" not in info:
+            for row in self.soup.find_all('tr'):
+                columns = row.find_all(['th', 'td'])
+                if len(columns) < 2:
+                    continue
+
+                key = columns[0].get_text(strip=True).lower()
+                value = columns[1].get_text(strip=True)
+
+                if 'nombre' in key and 'nombre' not in info:
+                    cleaned = re.sub(r'\s+', ' ', value)
+                    if cleaned and len(cleaned.split()) >= 2:
+                        info['nombre'] = cleaned
+                elif ('matrícula' in key or 'matricula' in key) and 'matricula' not in info:
+                    digits = re.search(r'\d{6,}', value)
+                    info['matricula'] = digits.group(0) if digits else value.strip()
+                elif 'periodo' in key and 'periodo' not in info:
+                    info['periodo'] = value.strip()
+
+                # Si ya obtuvimos todos, terminamos pronto
+                if 'nombre' in info and 'matricula' in info and 'periodo' in info:
+                    break
 
         # Buscar periodo académico
         for pattern in [
@@ -163,15 +200,34 @@ class UPQGradesParser:
         # Estrategia 1: Buscar tabla con headers que contengan palabras clave
         tables = self.soup.find_all('table')
 
+        best_table = None
+        best_score = 0
+
         for table in tables:
             # Buscar headers en la tabla
             headers = table.find_all('th')
             header_texts = [th.get_text(strip=True).lower() for th in headers]
+            header_blob = ' '.join(header_texts)
 
             # Si contiene palabras clave relacionadas con calificaciones
             keywords = ['materia', 'calificación', 'parcial', 'p1', 'p2', 'p3', 'grupo', 'profesor']
-            if any(keyword in ' '.join(header_texts) for keyword in keywords):
-                return table
+            match_count = sum(1 for keyword in keywords if keyword in header_blob)
+
+            # Calcular un puntaje simple para escoger la mejor tabla
+            score = match_count
+            if 'materia' in header_blob:
+                score += 3
+            if 'calificación' in header_blob:
+                score += 2
+            if any(f'p{i}' in header_blob for i in range(1, 6)):
+                score += 1
+
+            if score > best_score:
+                best_score = score
+                best_table = table
+
+        if best_table and best_score >= 3:
+            return best_table
 
         # Estrategia 2: Buscar la tabla más grande con <td> y <tr>
         if tables:
@@ -401,7 +457,7 @@ class UPQGradesParser:
             return materia_data
 
         except Exception as e:
-            print(f"⚠️  Error al parsear fila: {str(e)}")
+            print(f"[WARN] Error al parsear fila: {str(e)}")
             return None
 
     def get_raw_html(self) -> str:
@@ -417,7 +473,7 @@ class UPQGradesParser:
         """
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(self.html)
-        print(f"💾 HTML guardado para debugging en: {filepath}")
+        print(f"[INFO] HTML guardado para debugging en: {filepath}")
 
 
 def parse_kardex(html: str) -> List[Dict[str, str]]:
@@ -459,13 +515,13 @@ def parse_kardex(html: str) -> List[Dict[str, str]]:
             break
     
     if not kardex_section:
-        print("⚠️  No se encontró la sección de Kardex en el HTML")
+        print("[WARN] No se encontró la sección de Kardex en el HTML")
         return []
     
     # Encontrar la tabla dentro de la sección kardex
     table = kardex_section.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla en la sección de Kardex")
+        print("[WARN] No se encontró tabla en la sección de Kardex")
         return []
     
     materias = []
@@ -482,7 +538,7 @@ def parse_kardex(html: str) -> List[Dict[str, str]]:
             }
             materias.append(materia)
     
-    print(f"✅ Kardex parseado: {len(materias)} materias encontradas")
+    print(f"[OK] Kardex parseado: {len(materias)} materias encontradas")
     return materias
 
 
@@ -571,7 +627,7 @@ def parse_student_profile(html: str) -> Dict[str, str]:
         if username_span:
             perfil['nombre_usuario'] = username_span.text.strip()
     
-    print(f"✅ Perfil parseado: {len(perfil)} campos encontrados")
+    print(f"[OK] Perfil parseado: {len(perfil)} campos encontrados")
     return perfil
 
 
@@ -643,7 +699,7 @@ def parse_carga_academica(html: str) -> Dict:
             }
             materias.append(materia)
     
-    print(f"✅ Carga académica parseada: {len(materias)} materias encontradas")
+    print(f"[OK] Carga académica parseada: {len(materias)} materias encontradas")
     return {
         'periodo': periodo,
         'materias': materias
@@ -685,7 +741,7 @@ def parse_historial_academico(html: str) -> List[Dict]:
     # Buscar la tabla principal del historial
     table = soup.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla de historial académico")
+        print("[WARN] No se encontró tabla de historial académico")
         return []
     
     historial = []
@@ -711,7 +767,7 @@ def parse_historial_academico(html: str) -> List[Dict]:
             }
             historial.append(materia)
     
-    print(f"✅ Historial académico parseado: {len(historial)} registros encontrados")
+    print(f"[OK] Historial académico parseado: {len(historial)} registros encontrados")
     return historial
 
 
@@ -790,7 +846,7 @@ def parse_mapa_curricular(html: str) -> Dict[str, List[Dict]]:
             if materias:
                 mapa[cuatrimestre] = materias
     
-    print(f"✅ Mapa curricular parseado: {len(mapa)} cuatrimestres encontrados")
+    print(f"[OK] Mapa curricular parseado: {len(mapa)} cuatrimestres encontrados")
     return mapa
 
 
@@ -824,7 +880,7 @@ def parse_horario(html: str) -> List[Dict]:
     # Buscar la tabla del horario
     table = soup.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla de horario")
+        print("[WARN] No se encontró tabla de horario")
         return []
     
     horario = []
@@ -841,7 +897,7 @@ def parse_horario(html: str) -> List[Dict]:
             }
             horario.append(clase)
     
-    print(f"✅ Horario parseado: {len(horario)} clases encontradas")
+    print(f"[OK] Horario parseado: {len(horario)} clases encontradas")
     return horario
 
 
@@ -927,7 +983,7 @@ def parse_boleta(html: str) -> Dict[str, Any]:
                 'materias': materias
             })
     
-    print(f"✅ Boleta parseada: {len(cuatrimestres)} cuatrimestres encontrados")
+    print(f"[OK] Boleta parseada: {len(cuatrimestres)} cuatrimestres encontrados")
     return {'cuatrimestres': cuatrimestres}
 
 
@@ -960,7 +1016,7 @@ def parse_pagos(html: str) -> List[Dict]:
     # Buscar la tabla de pagos
     table = soup.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla de pagos")
+        print("[WARN] No se encontró tabla de pagos")
         return []
     
     pagos = []
@@ -976,7 +1032,7 @@ def parse_pagos(html: str) -> List[Dict]:
             }
             pagos.append(pago)
     
-    print(f"✅ Pagos parseados: {len(pagos)} registros encontrados")
+    print(f"[OK] Pagos parseados: {len(pagos)} registros encontrados")
     return pagos
 
 
@@ -1008,7 +1064,7 @@ def parse_adeudos(html: str) -> List[Dict]:
     # Buscar la tabla de adeudos
     table = soup.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla de adeudos")
+        print("[WARN] No se encontró tabla de adeudos")
         return []
     
     adeudos = []
@@ -1028,7 +1084,7 @@ def parse_adeudos(html: str) -> List[Dict]:
             }
             adeudos.append(adeudo)
     
-    print(f"✅ Adeudos parseados: {len(adeudos)} registros encontrados")
+    print(f"[OK] Adeudos parseados: {len(adeudos)} registros encontrados")
     return adeudos
 
 
@@ -1061,7 +1117,7 @@ def parse_documentos(html: str) -> List[Dict]:
     # Buscar la tabla de documentos
     table = soup.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla de documentos")
+        print("[WARN] No se encontró tabla de documentos")
         return []
     
     documentos = []
@@ -1082,7 +1138,7 @@ def parse_documentos(html: str) -> List[Dict]:
             }
             documentos.append(documento)
     
-    print(f"✅ Documentos parseados: {len(documentos)} registros encontrados")
+    print(f"[OK] Documentos parseados: {len(documentos)} registros encontrados")
     return documentos
 
 
@@ -1117,7 +1173,7 @@ def parse_seguimiento_cuatrimestral(html: str) -> List[Dict]:
     # Buscar la tabla de seguimiento
     table = soup.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla de seguimiento cuatrimestral")
+        print("[WARN] No se encontró tabla de seguimiento cuatrimestral")
         return []
     
     seguimiento = []
@@ -1135,7 +1191,7 @@ def parse_seguimiento_cuatrimestral(html: str) -> List[Dict]:
             }
             seguimiento.append(cuatri)
     
-    print(f"✅ Seguimiento parseado: {len(seguimiento)} cuatrimestres encontrados")
+    print(f"[OK] Seguimiento parseado: {len(seguimiento)} cuatrimestres encontrados")
     return seguimiento
 
 
@@ -1183,13 +1239,13 @@ def parse_estancias(html: str) -> List[Dict]:
             break
     
     if not estancias_section:
-        print("⚠️  No se encontró sección de estancias")
+        print("[WARN] No se encontró sección de estancias")
         return []
     
     # Buscar la tabla dentro de la sección
     table = estancias_section.find('table', class_='grid')
     if not table:
-        print("⚠️  No se encontró tabla de estancias")
+        print("[WARN] No se encontró tabla de estancias")
         return []
     
     estancias = []
@@ -1206,7 +1262,7 @@ def parse_estancias(html: str) -> List[Dict]:
             }
             estancias.append(estancia)
     
-    print(f"✅ Estancias parseadas: {len(estancias)} registros encontrados")
+    print(f"[OK] Estancias parseadas: {len(estancias)} registros encontrados")
     return estancias
 
 
@@ -1243,7 +1299,7 @@ def parse_servicio_social(html: str) -> Dict[str, Any]:
             break
     
     if not servicio_section:
-        print("⚠️  No se encontró sección de servicio social")
+        print("[WARN] No se encontró sección de servicio social")
         return {}
     
     servicio = {}
@@ -1301,7 +1357,7 @@ def parse_servicio_social(html: str) -> Dict[str, Any]:
     else:
         servicio['cumple_requisitos'] = False
     
-    print(f"✅ Servicio social parseado: {len(servicio)} campos encontrados")
+    print(f"[OK] Servicio social parseado: {len(servicio)} campos encontrados")
     return servicio
 
 
